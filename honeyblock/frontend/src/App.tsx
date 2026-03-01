@@ -8,12 +8,15 @@ function App() {
   const [attackers, setAttackers] = useState<Attacker[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cowrieRunning, setCowrieRunning] = useState<boolean | null>(null)
+  const [toggling, setToggling] = useState(false)
 
   const fetchData = async () => {
     try {
-      const [statsRes, attackersRes] = await Promise.all([
+      const [statsRes, attackersRes, cowrieRes] = await Promise.all([
         fetch('/api/stats'),
         fetch('/api/attackers'),
+        fetch('/api/cowrie/status'),
       ])
 
       if (!statsRes.ok) throw new Error(`Stats: ${statsRes.status} ${statsRes.statusText}`)
@@ -25,10 +28,29 @@ function App() {
       setStats(statsData)
       setAttackers(attackersData)
       setError(null)
+
+      if (cowrieRes.ok) {
+        const cowrieData = await cowrieRes.json()
+        setCowrieRunning(cowrieData.running)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const toggleCowrie = async () => {
+    setToggling(true)
+    try {
+      const res = await fetch('/api/cowrie/toggle', { method: 'POST' })
+      const data = await res.json()
+      setCowrieRunning(data.running)
+      if (!res.ok) setError(data.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle Cowrie')
+    } finally {
+      setToggling(false)
     }
   }
 
@@ -49,10 +71,30 @@ function App() {
   return (
     <div style={{ background: '#0f1117', minHeight: '100vh', fontFamily: 'sans-serif' }}>
       {/* Top bar */}
-      <div style={{ background: '#1a1d27', padding: '16px 24px' }}>
+      <div style={{ background: '#1a1d27', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 20 }}>
           🍯 HoneyBlock
         </span>
+        <button
+          onClick={toggleCowrie}
+          disabled={toggling || cowrieRunning === null}
+          style={{
+            padding: '8px 20px',
+            border: 'none',
+            borderRadius: 6,
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: toggling ? 'wait' : 'pointer',
+            color: '#ffffff',
+            background: toggling
+              ? '#555'
+              : cowrieRunning
+                ? '#d32f2f'
+                : '#2e7d32',
+          }}
+        >
+          {toggling ? '...' : cowrieRunning ? 'Stop Cowrie' : 'Start Cowrie'}
+        </button>
       </div>
 
       {/* Content */}

@@ -1,4 +1,5 @@
 import os
+import subprocess
 from datetime import datetime, timedelta, timezone
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -127,6 +128,50 @@ def unblock():
 
     db.remove_blocked_ip(ip)
     return jsonify({"success": True, "message": fw_result["message"]})
+
+
+# ---------------------------------------------------------------------------
+# Cowrie service control
+# ---------------------------------------------------------------------------
+def _cowrie_is_active() -> bool:
+    result = subprocess.run(
+        ["systemctl", "is-active", "cowrie"],
+        capture_output=True, text=True, timeout=10
+    )
+    return result.stdout.strip() == "active"
+
+
+@app.route("/api/cowrie/status")
+def cowrie_status():
+    try:
+        running = _cowrie_is_active()
+        return jsonify({"running": running})
+    except Exception as exc:
+        return jsonify({"running": False, "error": str(exc)}), 500
+
+
+@app.route("/api/cowrie/toggle", methods=["POST"])
+def cowrie_toggle():
+    try:
+        running = _cowrie_is_active()
+        action = "stop" if running else "start"
+        result = subprocess.run(
+            ["systemctl", action, "cowrie"],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            return jsonify({
+                "running": running,
+                "message": f"Failed to {action} cowrie: {result.stderr.strip()}"
+            }), 500
+
+        new_state = _cowrie_is_active()
+        return jsonify({
+            "running": new_state,
+            "message": f"Cowrie {'started' if new_state else 'stopped'} successfully"
+        })
+    except Exception as exc:
+        return jsonify({"running": False, "message": str(exc)}), 500
 
 
 # ---------------------------------------------------------------------------

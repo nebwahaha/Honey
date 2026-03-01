@@ -165,19 +165,6 @@ sudo journalctl -u honeyblock -f
 sudo systemctl stop cowrie honeyblock honeyblock-watcher
 ```
 
-### Uninstall
-
-```bash
-sudo systemctl stop cowrie honeyblock honeyblock-watcher
-sudo systemctl disable cowrie honeyblock honeyblock-watcher
-sudo rm /etc/systemd/system/cowrie.service
-sudo rm /etc/systemd/system/honeyblock.service
-sudo rm /etc/systemd/system/honeyblock-watcher.service
-sudo rm -rf /opt/honeyblock
-sudo userdel -r cowrie
-sudo systemctl daemon-reload
-```
-
 ---
 
 ## FAQ
@@ -196,3 +183,78 @@ The installer is written for Ubuntu, but it should work on Debian with minor twe
 
 **Q: Where is the database?**
 `/opt/honeyblock/honeyblock.db` — it's a SQLite file. You can query it directly with `sqlite3 /opt/honeyblock/honeyblock.db`.
+
+---
+
+## Complete Uninstall
+
+If you want to completely remove HoneyBlock and start fresh, follow these steps. This removes **everything** the installer created.
+
+### Step 1: Stop and disable all services
+
+```bash
+sudo systemctl stop cowrie honeyblock honeyblock-watcher
+sudo systemctl disable cowrie honeyblock honeyblock-watcher
+```
+
+### Step 2: Remove the systemd service files
+
+```bash
+sudo rm -f /etc/systemd/system/cowrie.service
+sudo rm -f /etc/systemd/system/honeyblock.service
+sudo rm -f /etc/systemd/system/honeyblock-watcher.service
+sudo systemctl daemon-reload
+```
+
+### Step 3: Remove HoneyBlock files
+
+This deletes the backend, frontend, database, logs, and virtual environment.
+
+```bash
+sudo rm -rf /opt/honeyblock
+```
+
+### Step 4: Remove Cowrie and its user
+
+This deletes the Cowrie honeypot and the `cowrie` system user along with its home directory.
+
+```bash
+sudo userdel -r cowrie
+```
+
+> This removes `/home/cowrie/` which contains the Cowrie source code, virtual environment, and all honeypot logs/keys.
+
+### Step 5: Clear the SSH known host (optional)
+
+If you connected to Cowrie via SSH during testing, remove the saved host key so you don't get a warning on the next install.
+
+```bash
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222'
+```
+
+### Quick one-liner
+
+If you want to do it all in one shot, copy and paste this:
+
+```bash
+sudo systemctl stop cowrie honeyblock honeyblock-watcher && \
+sudo systemctl disable cowrie honeyblock honeyblock-watcher && \
+sudo rm -f /etc/systemd/system/cowrie.service /etc/systemd/system/honeyblock.service /etc/systemd/system/honeyblock-watcher.service && \
+sudo systemctl daemon-reload && \
+sudo rm -rf /opt/honeyblock && \
+sudo userdel -r cowrie && \
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222'
+```
+
+### What this does NOT remove
+
+The installer also installs some system packages (`python3`, `python3-venv`, `git`, `iptables`, etc.) via `apt`. These are left in place because other programs on your system might use them. If you want to remove them too:
+
+```bash
+sudo apt-get remove --purge -y authbind libssl-dev libffi-dev
+sudo apt-get autoremove -y
+```
+
+> **Note:** Do NOT remove `python3`, `git`, or `iptables` — your system likely depends on them.
+
+After uninstalling, you can do a fresh install by simply running `sudo bash honeyblock-installer.run` again.
