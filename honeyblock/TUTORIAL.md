@@ -252,7 +252,13 @@ sudo userdel -r cowrie
 rm -f ~/Desktop/HoneyBlock.desktop
 ```
 
-### Step 6: Clear the SSH known host (optional)
+### Step 6: Remove the polkit policy
+
+```bash
+sudo rm -f /usr/share/polkit-1/actions/com.honeyblock.ctl.policy
+```
+
+### Step 7: Clear the SSH known host (optional)
 
 If you connected to Cowrie via SSH during testing, remove the saved host key so you don't get a warning on the next install.
 
@@ -271,6 +277,7 @@ sudo rm -f /etc/systemd/system/cowrie.service /etc/systemd/system/honeyblock.ser
 sudo systemctl daemon-reload && \
 sudo rm -rf /opt/honeyblock && \
 sudo userdel -r cowrie && \
+sudo rm -f /usr/share/polkit-1/actions/com.honeyblock.ctl.policy && \
 rm -f ~/Desktop/HoneyBlock.desktop && \
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222'
 ```

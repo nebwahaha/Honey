@@ -86,6 +86,9 @@ INSTALL_DIR="/opt/honeyblock"
 info "Installing HoneyBlock to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
 
+# Remove old files to ensure fresh deployment
+rm -rf "$INSTALL_DIR/backend" "$INSTALL_DIR/frontend"
+
 cp -r "$REPO_DIR/backend"  "$INSTALL_DIR/backend"
 cp -r "$REPO_DIR/frontend" "$INSTALL_DIR/frontend"
 
@@ -193,6 +196,28 @@ CTL
 
 chmod +x "$INSTALL_DIR/honeyblock-ctl.sh"
 
+# ── Polkit policy (allows pkexec to run honeyblock-ctl.sh) ───────────────
+info "Installing polkit policy for desktop shortcut..."
+
+cat > /usr/share/polkit-1/actions/com.honeyblock.ctl.policy << 'POLKIT'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <action id="com.honeyblock.ctl">
+    <message>Authentication is required to start/stop HoneyBlock</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/opt/honeyblock/honeyblock-ctl.sh</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>
+POLKIT
+
 # ── Desktop shortcut ──────────────────────────────────────────────────────
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(eval echo "~$REAL_USER")
@@ -207,14 +232,19 @@ Version=1.0
 Type=Application
 Name=HoneyBlock
 Comment=Start or Stop HoneyBlock honeypot
-Exec=pkexec /opt/honeyblock/honeyblock-ctl.sh
+Exec=bash -c 'sudo /opt/honeyblock/honeyblock-ctl.sh; echo; echo "Press Enter to close..."; read'
 Icon=security-high
-Terminal=false
+Terminal=true
 Categories=Network;Security;
 DESK
 
   chown "$REAL_USER:$REAL_USER" "$DESKTOP_DIR/HoneyBlock.desktop"
   chmod +x "$DESKTOP_DIR/HoneyBlock.desktop"
+
+  # Mark as trusted on GNOME so it doesn't ask "Allow Launching"
+  if command -v gio &>/dev/null; then
+    sudo -u "$REAL_USER" gio set "$DESKTOP_DIR/HoneyBlock.desktop" metadata::trusted true 2>/dev/null || true
+  fi
 else
   warn "Desktop directory not found at $DESKTOP_DIR — skipping shortcut"
 fi
