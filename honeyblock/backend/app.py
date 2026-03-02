@@ -175,6 +175,53 @@ def cowrie_toggle():
 
 
 # ---------------------------------------------------------------------------
+# Auto-start on boot
+# ---------------------------------------------------------------------------
+AUTOSTART_SERVICES = ["cowrie", "honeyblock", "honeyblock-watcher"]
+
+
+def _autostart_enabled() -> bool:
+    result = subprocess.run(
+        ["systemctl", "is-enabled", "honeyblock"],
+        capture_output=True, text=True, timeout=10
+    )
+    return result.stdout.strip() == "enabled"
+
+
+@app.route("/api/autostart/status")
+def autostart_status():
+    try:
+        return jsonify({"enabled": _autostart_enabled()})
+    except Exception as exc:
+        return jsonify({"enabled": False, "error": str(exc)}), 500
+
+
+@app.route("/api/autostart/toggle", methods=["POST"])
+def autostart_toggle():
+    try:
+        enabled = _autostart_enabled()
+        action = "disable" if enabled else "enable"
+        for svc in AUTOSTART_SERVICES:
+            result = subprocess.run(
+                ["systemctl", action, svc],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode != 0:
+                return jsonify({
+                    "enabled": enabled,
+                    "message": f"Failed to {action} {svc}: {result.stderr.strip()}"
+                }), 500
+
+        new_state = _autostart_enabled()
+        return jsonify({
+            "enabled": new_state,
+            "message": f"Auto-start {'enabled' if new_state else 'disabled'}"
+        })
+    except Exception as exc:
+        return jsonify({"enabled": False, "message": str(exc)}), 500
+
+
+# ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":

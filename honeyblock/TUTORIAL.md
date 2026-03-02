@@ -19,7 +19,7 @@ HoneyBlock sets up a fake SSH server (honeypot) on your machine. When hackers tr
 Download `honeyblock-installer.run` from the GitHub releases page:
 
 ```bash
-wget https://github.com/nebwahaha/honeyblock/releases/download/v1.0.2/honeyblock-installer.run
+wget https://github.com/nebwahaha/honeyblock/releases/download/v1.0.3/honeyblock-installer.run
 ```
 
 ### Step 2: Run the installer

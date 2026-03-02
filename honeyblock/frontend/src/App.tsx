@@ -10,13 +10,16 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [cowrieRunning, setCowrieRunning] = useState<boolean | null>(null)
   const [toggling, setToggling] = useState(false)
+  const [autoStart, setAutoStart] = useState<boolean | null>(null)
+  const [togglingAuto, setTogglingAuto] = useState(false)
 
   const fetchData = async () => {
     try {
-      const [statsRes, attackersRes, cowrieRes] = await Promise.all([
+      const [statsRes, attackersRes, cowrieRes, autoRes] = await Promise.all([
         fetch('/api/stats'),
         fetch('/api/attackers'),
         fetch('/api/cowrie/status'),
+        fetch('/api/autostart/status'),
       ])
 
       if (!statsRes.ok) throw new Error(`Stats: ${statsRes.status} ${statsRes.statusText}`)
@@ -32,6 +35,10 @@ function App() {
       if (cowrieRes.ok) {
         const cowrieData = await cowrieRes.json()
         setCowrieRunning(cowrieData.running)
+      }
+      if (autoRes.ok) {
+        const autoData = await autoRes.json()
+        setAutoStart(autoData.enabled)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
@@ -51,6 +58,20 @@ function App() {
       setError(err instanceof Error ? err.message : 'Failed to toggle Cowrie')
     } finally {
       setToggling(false)
+    }
+  }
+
+  const toggleAutoStart = async () => {
+    setTogglingAuto(true)
+    try {
+      const res = await fetch('/api/autostart/toggle', { method: 'POST' })
+      const data = await res.json()
+      setAutoStart(data.enabled)
+      if (!res.ok) setError(data.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle auto-start')
+    } finally {
+      setTogglingAuto(false)
     }
   }
 
@@ -75,26 +96,44 @@ function App() {
         <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 20 }}>
           🍯 HoneyBlock
         </span>
-        <button
-          onClick={toggleCowrie}
-          disabled={toggling || cowrieRunning === null}
-          style={{
-            padding: '8px 20px',
-            border: 'none',
-            borderRadius: 6,
-            fontWeight: 600,
-            fontSize: 14,
-            cursor: toggling ? 'wait' : 'pointer',
-            color: '#ffffff',
-            background: toggling
-              ? '#555'
-              : cowrieRunning
-                ? '#d32f2f'
-                : '#2e7d32',
-          }}
-        >
-          {toggling ? '...' : cowrieRunning ? 'Stop Cowrie' : 'Start Cowrie'}
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button
+            onClick={toggleAutoStart}
+            disabled={togglingAuto || autoStart === null}
+            style={{
+              padding: '8px 16px',
+              border: autoStart ? '2px solid #f59e0b' : '2px solid #555',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: togglingAuto ? 'wait' : 'pointer',
+              color: autoStart ? '#f59e0b' : '#888',
+              background: 'transparent',
+            }}
+          >
+            {togglingAuto ? '...' : autoStart ? 'Auto-Start: ON' : 'Auto-Start: OFF'}
+          </button>
+          <button
+            onClick={toggleCowrie}
+            disabled={toggling || cowrieRunning === null}
+            style={{
+              padding: '8px 20px',
+              border: 'none',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: toggling ? 'wait' : 'pointer',
+              color: '#ffffff',
+              background: toggling
+                ? '#555'
+                : cowrieRunning
+                  ? '#d32f2f'
+                  : '#2e7d32',
+            }}
+          >
+            {toggling ? '...' : cowrieRunning ? 'Stop Cowrie' : 'Start Cowrie'}
+          </button>
+        </div>
       </div>
 
       {/* Content */}
