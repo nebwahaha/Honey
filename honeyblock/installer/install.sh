@@ -159,10 +159,69 @@ Environment=PYTHONUNBUFFERED=1
 WantedBy=multi-user.target
 UNIT
 
-# ── Enable & start services ─────────────────────────────────────────────────
-info "Enabling and starting services..."
+# ── Control script (start/stop toggle) ─────────────────────────────────────
+info "Creating HoneyBlock control script..."
+
+cat > "$INSTALL_DIR/honeyblock-ctl.sh" << 'CTL'
+#!/usr/bin/env bash
+# HoneyBlock control script — toggles all services on/off
+
+SERVICES="cowrie honeyblock honeyblock-watcher"
+
+is_running() {
+  systemctl is-active --quiet honeyblock
+}
+
+notify() {
+  # Try desktop notification, fall back silently
+  if command -v notify-send &>/dev/null && [ -n "${SUDO_USER:-}" ]; then
+    sudo -u "$SUDO_USER" DISPLAY=:0 notify-send "HoneyBlock" "$1" 2>/dev/null || true
+  fi
+  echo "$1"
+}
+
+if is_running; then
+  echo "Stopping HoneyBlock..."
+  systemctl stop $SERVICES
+  notify "HoneyBlock stopped."
+else
+  echo "Starting HoneyBlock..."
+  systemctl start $SERVICES
+  notify "HoneyBlock started. Dashboard: http://localhost:5000"
+fi
+CTL
+
+chmod +x "$INSTALL_DIR/honeyblock-ctl.sh"
+
+# ── Desktop shortcut ──────────────────────────────────────────────────────
+REAL_USER="${SUDO_USER:-$USER}"
+REAL_HOME=$(eval echo "~$REAL_USER")
+DESKTOP_DIR="$REAL_HOME/Desktop"
+
+if [[ -d "$DESKTOP_DIR" ]]; then
+  info "Creating desktop shortcut for $REAL_USER..."
+
+  cat > "$DESKTOP_DIR/HoneyBlock.desktop" << DESK
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=HoneyBlock
+Comment=Start or Stop HoneyBlock honeypot
+Exec=pkexec /opt/honeyblock/honeyblock-ctl.sh
+Icon=security-high
+Terminal=false
+Categories=Network;Security;
+DESK
+
+  chown "$REAL_USER:$REAL_USER" "$DESKTOP_DIR/HoneyBlock.desktop"
+  chmod +x "$DESKTOP_DIR/HoneyBlock.desktop"
+else
+  warn "Desktop directory not found at $DESKTOP_DIR — skipping shortcut"
+fi
+
+# ── Start services (initial run) ──────────────────────────────────────────
+info "Starting services for initial verification..."
 systemctl daemon-reload
-systemctl enable cowrie.service honeyblock.service honeyblock-watcher.service
 systemctl start cowrie.service
 systemctl start honeyblock.service
 systemctl start honeyblock-watcher.service
@@ -174,6 +233,10 @@ echo -e "${GREEN}  HoneyBlock installed successfully!${NC}"
 echo -e "${GREEN}============================================${NC}"
 echo ""
 echo -e "  Dashboard:  ${YELLOW}http://localhost:5000${NC}"
+echo ""
+echo -e "  ${YELLOW}NOTE:${NC} Services do NOT auto-start on boot."
+echo -e "  Use the desktop shortcut or run:"
+echo -e "    ${YELLOW}sudo /opt/honeyblock/honeyblock-ctl.sh${NC}"
 echo ""
 echo -e "  Services:"
 echo -e "    cowrie              → systemctl status cowrie"

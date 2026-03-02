@@ -19,7 +19,7 @@ HoneyBlock sets up a fake SSH server (honeypot) on your machine. When hackers tr
 Download `honeyblock-installer.run` from the GitHub releases page:
 
 ```bash
-wget https://github.com/YOUR_USERNAME/honeyblock/releases/download/v1.0.0/honeyblock-installer.run
+wget https://github.com/nebwahaha/honeyblock/releases/download/v1.0.2/honeyblock-installer.run
 ```
 
 ### Step 2: Run the installer
@@ -126,6 +126,28 @@ Three services run in the background:
 
 ---
 
+## Starting and Stopping HoneyBlock
+
+HoneyBlock does **not** auto-start on boot. You control when it runs.
+
+### Option 1: Desktop shortcut (easiest)
+
+After installing, you'll find a **HoneyBlock** icon on your desktop. Double-click it:
+- If HoneyBlock is stopped → it starts all services (you'll be asked for your password)
+- If HoneyBlock is running → it stops all services
+
+> On Ubuntu, you may need to right-click the icon and select "Allow Launching" the first time.
+
+### Option 2: Terminal command
+
+```bash
+sudo /opt/honeyblock/honeyblock-ctl.sh
+```
+
+This toggles all services on or off.
+
+---
+
 ## Useful Commands
 
 ### Check if everything is running
@@ -224,7 +246,13 @@ sudo userdel -r cowrie
 
 > This removes `/home/cowrie/` which contains the Cowrie source code, virtual environment, and all honeypot logs/keys.
 
-### Step 5: Clear the SSH known host (optional)
+### Step 5: Remove the desktop shortcut
+
+```bash
+rm -f ~/Desktop/HoneyBlock.desktop
+```
+
+### Step 6: Clear the SSH known host (optional)
 
 If you connected to Cowrie via SSH during testing, remove the saved host key so you don't get a warning on the next install.
 
@@ -238,11 +266,12 @@ If you want to do it all in one shot, copy and paste this:
 
 ```bash
 sudo systemctl stop cowrie honeyblock honeyblock-watcher && \
-sudo systemctl disable cowrie honeyblock honeyblock-watcher && \
+sudo systemctl disable cowrie honeyblock honeyblock-watcher 2>/dev/null; \
 sudo rm -f /etc/systemd/system/cowrie.service /etc/systemd/system/honeyblock.service /etc/systemd/system/honeyblock-watcher.service && \
 sudo systemctl daemon-reload && \
 sudo rm -rf /opt/honeyblock && \
 sudo userdel -r cowrie && \
+rm -f ~/Desktop/HoneyBlock.desktop && \
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222'
 ```
 
