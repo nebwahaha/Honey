@@ -81,7 +81,7 @@ echo ""
 echo -e "  To install:  ${YELLOW}sudo bash honeyblock-installer.run${NC}"
 echo ""
 echo -e "  To upload as a GitHub release asset:"
-echo -e "    gh release create v1.0.3 $OUTPUT --title \"HoneyBlock v1.0.3\""
+echo -e "    gh release create v2.0.1 $OUTPUT --title \"HoneyBlock v2.0.1\""
 echo ""
 
 # ── Cleanup staging directory ───────────────────────────────────────────────
