@@ -120,7 +120,10 @@ def _parse_line(raw: str):
     # Cowrie provides 'duration' (in seconds) on session.closed events
     duration = entry.get("duration")
     if duration is not None:
-        session_duration = str(round(duration, 2)) + "s"
+        try:
+            session_duration = str(round(float(duration), 2)) + "s"
+        except (ValueError, TypeError):
+            session_duration = str(duration)
     else:
         session_duration = entry.get("timestamp", datetime.now(timezone.utc).isoformat())
 

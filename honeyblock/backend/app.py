@@ -1,5 +1,7 @@
+import json
 import os
 import subprocess
+from collections import deque
 from datetime import datetime, timedelta, timezone
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -24,6 +26,8 @@ db.init_db()
 # Frontend
 # ---------------------------------------------------------------------------
 @app.route("/")
+@app.route("/blocking")
+@app.route("/configurations")
 def index():
     return send_from_directory(STATIC_DIR, "index.html")
 
@@ -117,6 +121,50 @@ def unblock():
 
     db.remove_block(ip)
     return jsonify({"success": True, "message": fw_result["message"]})
+
+
+# ---------------------------------------------------------------------------
+# Raw Cowrie logs
+# ---------------------------------------------------------------------------
+COWRIE_LOG = "/home/cowrie/cowrie/var/log/cowrie/cowrie.json"
+
+
+@app.route("/api/logs")
+def cowrie_logs():
+    limit = request.args.get("limit", 100, type=int)
+    limit = max(1, min(limit, 500))
+
+    if not os.path.isfile(COWRIE_LOG):
+        return jsonify({"data": []})
+
+    # Read the last N lines efficiently
+    lines: deque[dict] = deque(maxlen=limit)
+    try:
+        with open(COWRIE_LOG, "r") as fh:
+            for raw in fh:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    entry = json.loads(raw)
+                    lines.append(entry)
+                except json.JSONDecodeError:
+                    continue
+    except OSError:
+        return jsonify({"data": []})
+
+    # Enrich with country from attacker table
+    result = list(reversed(lines))
+    ip_countries: dict[str, str | None] = {}
+    for entry in result:
+        ip = entry.get("src_ip")
+        if ip and ip not in ip_countries:
+            attacker = db.get_attacker(ip)
+            ip_countries[ip] = attacker["country"] if attacker else None
+        if ip:
+            entry["country"] = ip_countries.get(ip)
+
+    return jsonify({"data": result})
 
 
 # ---------------------------------------------------------------------------
