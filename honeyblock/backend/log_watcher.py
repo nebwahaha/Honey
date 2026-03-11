@@ -11,6 +11,8 @@ from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+from datetime import datetime, timezone
+
 import db
 
 # ---------------------------------------------------------------------------
@@ -26,6 +28,7 @@ WATCHED_EVENTS = {
     "cowrie.login.success",
     "cowrie.command.input",
     "cowrie.session.connect",
+    "cowrie.session.closed",
 }
 
 # ---------------------------------------------------------------------------
@@ -114,18 +117,26 @@ def _parse_line(raw: str):
 
     geo = geolocate(ip)
 
-    attempt = {
+    # Cowrie provides 'duration' (in seconds) on session.closed events
+    duration = entry.get("duration")
+    if duration is not None:
+        session_duration = str(round(duration, 2)) + "s"
+    else:
+        session_duration = entry.get("timestamp", datetime.now(timezone.utc).isoformat())
+
+    session = {
         "ip": ip,
-        "username": entry.get("username"),
-        "password": entry.get("password"),
-        "timestamp": entry.get("timestamp"),
+        "session_duration": session_duration,
         "event_type": event_id,
-        "country": geo["country"],
-        "city": geo["city"],
+        "username_attempt": entry.get("username"),
+        "password_attempt": entry.get("password"),
+        "command_used": entry.get("input"),
+        "timestamp": entry.get("timestamp", datetime.now(timezone.utc).isoformat()),
     }
 
     try:
-        db.insert_attempt(attempt)
+        db.insert_session(session)
+        db.upsert_attacker(ip, country=geo.get("country"))
         logger.info("Recorded %-30s from %s", event_id, ip)
     except Exception:
         logger.exception("Failed to insert attempt for %s", ip)

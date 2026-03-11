@@ -33,11 +33,10 @@ function AttackerTable({ attackers }: AttackerTableProps) {
       <thead>
         <tr>
           <th style={thStyle}>IP Address</th>
-          <th style={thStyle}>Attempt Count</th>
           <th style={thStyle}>Country</th>
-          <th style={thStyle}>City</th>
-          <th style={thStyle}>First Seen</th>
-          <th style={thStyle}>Last Seen</th>
+          <th style={thStyle}>Status</th>
+          <th style={thStyle}>First Detected</th>
+          <th style={thStyle}>Last Detected</th>
         </tr>
       </thead>
       <tbody>
@@ -50,11 +49,12 @@ function AttackerTable({ attackers }: AttackerTableProps) {
             }}
           >
             <td style={{ padding: 12 }}>{a.ip}</td>
-            <td style={{ padding: 12 }}>{a.attempt_count}</td>
             <td style={{ padding: 12 }}>{a.country ?? '--'}</td>
-            <td style={{ padding: 12 }}>{a.city ?? '--'}</td>
-            <td style={{ padding: 12 }}>{a.first_seen}</td>
-            <td style={{ padding: 12 }}>{a.last_seen}</td>
+            <td style={{ padding: 12, color: a.is_blocked === 'Blocked' ? '#f85149' : '#3fb950' }}>
+              {a.is_blocked ?? 'not blocked'}
+            </td>
+            <td style={{ padding: 12 }}>{a.initial_detection}</td>
+            <td style={{ padding: 12 }}>{a.last_detected}</td>
           </tr>
         ))}
       </tbody>

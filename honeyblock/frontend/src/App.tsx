@@ -146,6 +146,7 @@ function App() {
         <div style={{ display: 'flex', gap: 16 }}>
           <StatCard label="Total Attempts" value={stats?.total_attempts ?? '--'} />
           <StatCard label="Unique Attackers" value={stats?.unique_ips ?? '--'} />
+          <StatCard label="Blocked IPs" value={stats?.blocked_ips ?? '--'} />
         </div>
 
         {/* Attackers section */}

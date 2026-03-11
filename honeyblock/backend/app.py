@@ -48,7 +48,7 @@ def attempts():
     limit = max(1, min(limit, 200))
     offset = (page - 1) * limit
 
-    rows = db.get_attempts(limit=limit, offset=offset)
+    rows = db.get_sessions(limit=limit, offset=offset)
     return jsonify({"page": page, "limit": limit, "data": rows})
 
 
@@ -62,7 +62,7 @@ def stats():
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     with db.get_connection() as conn:
         last_24h = conn.execute(
-            "SELECT COUNT(*) FROM attempts WHERE timestamp >= ?", (cutoff,)
+            "SELECT COUNT(*) FROM attacker_session WHERE timestamp >= ?", (cutoff,)
         ).fetchone()[0]
 
     info["attempts_last_24h"] = last_24h
@@ -74,19 +74,8 @@ def stats():
 # ---------------------------------------------------------------------------
 @app.route("/api/attackers")
 def attackers():
-    with db.get_connection() as conn:
-        rows = conn.execute(
-            """SELECT ip,
-                      COUNT(*)        AS attempt_count,
-                      country,
-                      city,
-                      MIN(timestamp)  AS first_seen,
-                      MAX(timestamp)  AS last_seen
-               FROM attempts
-               GROUP BY ip
-               ORDER BY attempt_count DESC"""
-        ).fetchall()
-    return jsonify([dict(r) for r in rows])
+    rows = db.get_attackers()
+    return jsonify(rows)
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +83,7 @@ def attackers():
 # ---------------------------------------------------------------------------
 @app.route("/api/blocked")
 def blocked():
-    rows = db.get_blocked_ips()
+    rows = db.get_blocklist()
     return jsonify({"data": rows})
 
 
@@ -110,7 +99,7 @@ def block():
     if not fw_result["success"]:
         return jsonify(fw_result), 500
 
-    db_record = db.add_blocked_ip(ip)
+    db_record = db.add_block(ip)
     return jsonify({"success": True, "message": fw_result["message"], "blocked": db_record})
 
 
@@ -126,7 +115,7 @@ def unblock():
     if not fw_result["success"]:
         return jsonify(fw_result), 500
 
-    db.remove_blocked_ip(ip)
+    db.remove_block(ip)
     return jsonify({"success": True, "message": fw_result["message"]})
 
 
