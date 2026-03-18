@@ -210,27 +210,53 @@ The installer is written for Ubuntu, but it should work on Debian with minor twe
 
 ## Complete Uninstall
 
-If you want to completely remove HoneyBlock and start fresh, follow these steps. This removes **everything** the installer created.
+If you want to completely remove HoneyBlock and start fresh, follow these steps. This removes **everything** the installer and the running application created on your system.
+
+### What gets installed (full list)
+
+For reference, here is every file, directory, and artifact that the installer and the running application place on your system:
+
+| Category | Location |
+|----------|----------|
+| HoneyBlock app | `/opt/honeyblock/backend/`, `/opt/honeyblock/frontend/` |
+| Python virtual env | `/opt/honeyblock/venv/` |
+| SQLite database | `/opt/honeyblock/honeyblock.db` (+ `-wal` and `-shm` files) |
+| Watcher state file | `/opt/honeyblock/watcher.pos` |
+| Watcher log | `/opt/honeyblock/logs/watcher.log` |
+| Control script | `/opt/honeyblock/honeyblock-ctl.sh` |
+| Cowrie honeypot | `/home/cowrie/cowrie/` (source, venv, config) |
+| Cowrie runtime data | `/home/cowrie/cowrie/var/log/cowrie/` (logs), `/home/cowrie/cowrie/var/lib/cowrie/` (TTY logs, downloads), `/home/cowrie/cowrie/var/run/cowrie/` (PID files) |
+| Cowrie system user | `cowrie` user and group |
+| Systemd services | `/etc/systemd/system/cowrie.service`, `honeyblock.service`, `honeyblock-watcher.service` |
+| Systemd enable symlinks | `/etc/systemd/system/multi-user.target.wants/cowrie.service`, `honeyblock.service`, `honeyblock-watcher.service` (only if auto-start was toggled on) |
+| Polkit policy | `/usr/share/polkit-1/actions/com.honeyblock.ctl.policy` |
+| Desktop shortcut | `~/Desktop/HoneyBlock.desktop` |
+| iptables rules | DROP rules in the INPUT chain (added when you block IPs via the dashboard) |
+| Temp extraction | `/tmp/honeyblock-dist` (normally auto-cleaned, but may remain if installer was interrupted) |
+| APT packages | `python3`, `python3-pip`, `python3-venv`, `git`, `iptables`, `authbind`, `libssl-dev`, `libffi-dev` |
 
 ### Step 1: Stop and disable all services
 
 ```bash
-sudo systemctl stop cowrie honeyblock honeyblock-watcher
-sudo systemctl disable cowrie honeyblock honeyblock-watcher
+sudo systemctl stop honeyblock-watcher honeyblock cowrie
+sudo systemctl disable honeyblock-watcher honeyblock cowrie 2>/dev/null
 ```
 
-### Step 2: Remove the systemd service files
+### Step 2: Remove the systemd service files and enable symlinks
 
 ```bash
-sudo rm -f /etc/systemd/system/cowrie.service
-sudo rm -f /etc/systemd/system/honeyblock.service
-sudo rm -f /etc/systemd/system/honeyblock-watcher.service
+sudo rm -f /etc/systemd/system/cowrie.service \
+           /etc/systemd/system/honeyblock.service \
+           /etc/systemd/system/honeyblock-watcher.service \
+           /etc/systemd/system/multi-user.target.wants/cowrie.service \
+           /etc/systemd/system/multi-user.target.wants/honeyblock.service \
+           /etc/systemd/system/multi-user.target.wants/honeyblock-watcher.service
 sudo systemctl daemon-reload
 ```
 
 ### Step 3: Remove HoneyBlock files
 
-This deletes the backend, frontend, database, logs, and virtual environment.
+This deletes the backend, frontend, database (+ WAL/SHM files), logs, state file, venv, and control script.
 
 ```bash
 sudo rm -rf /opt/honeyblock
@@ -238,13 +264,12 @@ sudo rm -rf /opt/honeyblock
 
 ### Step 4: Remove Cowrie and its user
 
-This deletes the Cowrie honeypot and the `cowrie` system user along with its home directory.
+This deletes the Cowrie honeypot (source code, virtual environment, runtime logs, captured TTY sessions, downloaded files, keys) and the `cowrie` system user.
 
 ```bash
-sudo userdel -r cowrie
+sudo rm -rf /home/cowrie
+sudo deluser --remove-home cowrie 2>/dev/null; sudo groupdel cowrie 2>/dev/null
 ```
-
-> This removes `/home/cowrie/` which contains the Cowrie source code, virtual environment, and all honeypot logs/keys.
 
 ### Step 5: Remove the desktop shortcut
 
@@ -258,7 +283,23 @@ rm -f ~/Desktop/HoneyBlock.desktop
 sudo rm -f /usr/share/polkit-1/actions/com.honeyblock.ctl.policy
 ```
 
-### Step 7: Clear the SSH known host (optional)
+### Step 7: Flush iptables rules added by HoneyBlock
+
+If you blocked any IPs through the dashboard, those DROP rules are still in your firewall. This removes them:
+
+```bash
+sudo iptables -S INPUT 2>/dev/null | grep -- '-j DROP' | while read -r rule; do
+  sudo iptables $(echo "$rule" | sed 's/^-A/-D/')
+done
+```
+
+### Step 8: Clean up temp extraction leftovers
+
+```bash
+sudo rm -rf /tmp/honeyblock-dist
+```
+
+### Step 9: Clear the SSH known host (optional)
 
 If you connected to Cowrie via SSH during testing, remove the saved host key so you don't get a warning on the next install.
 
@@ -271,20 +312,30 @@ ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222'
 If you want to do it all in one shot, copy and paste this:
 
 ```bash
-sudo systemctl stop cowrie honeyblock honeyblock-watcher && \
-sudo systemctl disable cowrie honeyblock honeyblock-watcher 2>/dev/null; \
-sudo rm -f /etc/systemd/system/cowrie.service /etc/systemd/system/honeyblock.service /etc/systemd/system/honeyblock-watcher.service && \
-sudo systemctl daemon-reload && \
-sudo rm -rf /opt/honeyblock && \
-sudo userdel -r cowrie && \
-sudo rm -f /usr/share/polkit-1/actions/com.honeyblock.ctl.policy && \
-rm -f ~/Desktop/HoneyBlock.desktop && \
-ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222'
+sudo systemctl stop honeyblock-watcher honeyblock cowrie 2>/dev/null; \
+sudo systemctl disable honeyblock-watcher honeyblock cowrie 2>/dev/null; \
+sudo rm -f /etc/systemd/system/cowrie.service \
+           /etc/systemd/system/honeyblock.service \
+           /etc/systemd/system/honeyblock-watcher.service \
+           /etc/systemd/system/multi-user.target.wants/cowrie.service \
+           /etc/systemd/system/multi-user.target.wants/honeyblock.service \
+           /etc/systemd/system/multi-user.target.wants/honeyblock-watcher.service; \
+sudo systemctl daemon-reload; \
+sudo rm -rf /opt/honeyblock; \
+sudo rm -rf /home/cowrie; \
+sudo deluser --remove-home cowrie 2>/dev/null; sudo groupdel cowrie 2>/dev/null; \
+sudo rm -f /usr/share/polkit-1/actions/com.honeyblock.ctl.policy; \
+rm -f ~/Desktop/HoneyBlock.desktop; \
+sudo iptables -S INPUT 2>/dev/null | grep -- '-j DROP' | while read -r rule; do
+  sudo iptables $(echo "$rule" | sed 's/^-A/-D/')
+done; \
+sudo rm -rf /tmp/honeyblock-dist; \
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R '[localhost]:2222' 2>/dev/null
 ```
 
 ### What this does NOT remove
 
-The installer also installs some system packages (`python3`, `python3-venv`, `git`, `iptables`, etc.) via `apt`. These are left in place because other programs on your system might use them. If you want to remove them too:
+The installer also installs some system packages (`python3`, `python3-pip`, `python3-venv`, `git`, `iptables`, `authbind`, `libssl-dev`, `libffi-dev`) via `apt`. These are left in place because other programs on your system might depend on them. If you want to remove them too:
 
 ```bash
 sudo apt-get remove --purge -y authbind libssl-dev libffi-dev
