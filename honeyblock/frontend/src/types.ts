@@ -4,6 +4,7 @@ export interface Attacker {
   last_detected: string
   country: string | null
   is_blocked: string | null
+  chances_left: number | null
 }
 
 export interface SessionEntry {

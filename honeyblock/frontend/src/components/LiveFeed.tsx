@@ -75,6 +75,10 @@ function formatEntry(entry: CowrieLog): {
     action = 'CMD:'
     actionColor = '#f5a623'
     details = entry.input ?? '(empty)'
+  } else if (eventid.includes('honeyblock.ip.blocked')) {
+    action = 'BLOCKED'
+    actionColor = '#f85149'
+    details = entry.message ?? 'Automatically blocked by system'
   } else if (eventid.includes('session.closed')) {
     action = 'connection lost'
     actionColor = '#8b949e'

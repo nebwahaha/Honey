@@ -9,6 +9,8 @@ Ubuntu 20.04+ | Requires root (sudo) | Needs internet
 ```bash
 wget https://github.com/nebwahaha/honeyblock/releases/download/v2.0.1/honeyblock-installer.run
 sudo bash honeyblock-installer.run
+
+sudo bash /home/neb/Documents/VSCode/Honey/honeyblock/honeyblock-installer.run
 ```
 
 Dashboard: `http://localhost:5000`
@@ -18,11 +20,15 @@ Dashboard: `http://localhost:5000`
 ## Build From Source
 
 ```bash
+cd /home/neb/Documents/VSCode/Honey/honeyblock && bash build.sh
+
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs makeself rsync
 cd honeyblock/frontend && npm install && cd ..
 bash build.sh
 sudo bash honeyblock-installer.run
+
+sudo chown -R neb:neb /home/neb/Documents/VSCode/Honey/honeyblock/backend/static
 ```
 
 ---

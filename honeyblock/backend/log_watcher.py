@@ -14,6 +14,7 @@ from watchdog.events import FileSystemEventHandler
 from datetime import datetime, timezone
 
 import db
+import firewall
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -99,6 +100,23 @@ def _write_position(pos: int):
 
 
 # ---------------------------------------------------------------------------
+# Write auto-block event to Cowrie log so it appears in live feed
+# ---------------------------------------------------------------------------
+def _write_block_log(ip: str, sessions: int, threshold: int):
+    entry = {
+        "eventid": "honeyblock.ip.blocked",
+        "src_ip": ip,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": f"Blocked by system — exceeded {threshold} session limit ({sessions} sessions)",
+    }
+    try:
+        with open(COWRIE_LOG, "a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+    except OSError as exc:
+        logger.warning("Failed to write block log entry: %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # Line parsing
 # ---------------------------------------------------------------------------
 def _parse_line(raw: str):
@@ -143,6 +161,25 @@ def _parse_line(raw: str):
         logger.info("Recorded %-30s from %s", event_id, ip)
     except Exception:
         logger.exception("Failed to insert attempt for %s", ip)
+        return
+
+    # Auto-block check
+    try:
+        cfg = db.get_autoblock_config()
+        if cfg["enabled"]:
+            attacker = db.get_attacker(ip)
+            if attacker and attacker["is_blocked"] != "Blocked":
+                since = db.get_sessions_since_baseline(ip)
+                if since >= cfg["threshold"]:
+                    fw = firewall.block_ip(ip)
+                    if fw["success"]:
+                        db.add_block(ip, blocked_by="Auto")
+                        logger.info("Auto-blocked %s (sessions since baseline: %d, threshold: %d)", ip, since, cfg["threshold"])
+                        _write_block_log(ip, since, cfg["threshold"])
+                    else:
+                        logger.warning("Auto-block firewall failed for %s: %s", ip, fw["message"])
+    except Exception:
+        logger.exception("Auto-block check failed for %s", ip)
 
 
 # ---------------------------------------------------------------------------

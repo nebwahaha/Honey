@@ -151,10 +151,20 @@ def get_attacker(ip: str) -> dict | None:
 def add_block(ip: str, blocked_by: str = None, expiration_date: str = None) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     with get_connection() as conn:
-        conn.execute(
-            "INSERT INTO blocklist (ip, block_date, blocked_by, expiration_date, is_active) VALUES (?, ?, ?, ?, ?)",
-            (ip, now, blocked_by, expiration_date, "Block_active"),
-        )
+        # Reactivate existing entry if one exists, otherwise insert new
+        existing = conn.execute(
+            "SELECT block_id FROM blocklist WHERE ip = ?", (ip,)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE blocklist SET block_date = ?, blocked_by = ?, expiration_date = ?, is_active = ? WHERE ip = ?",
+                (now, blocked_by, expiration_date, "Block_active", ip),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO blocklist (ip, block_date, blocked_by, expiration_date, is_active) VALUES (?, ?, ?, ?, ?)",
+                (ip, now, blocked_by, expiration_date, "Block_active"),
+            )
         conn.execute(
             "UPDATE attacker SET is_blocked = ? WHERE ip = ?",
             ("Blocked", ip),
@@ -175,6 +185,8 @@ def remove_block(ip: str):
             "UPDATE attacker SET is_blocked = ? WHERE ip = ?",
             ("not blocked", ip),
         )
+    # Save baseline so they get fresh chances
+    save_baseline(ip)
 
 
 def get_blocklist() -> list[dict]:
@@ -183,6 +195,82 @@ def get_blocklist() -> list[dict]:
             "SELECT * FROM blocklist ORDER BY block_date DESC"
         ).fetchall()
         return [dict(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# Auto-block settings (file-based, no extra DB table)
+# ---------------------------------------------------------------------------
+import json as _json
+
+AUTOBLOCK_CONFIG = os.path.join(os.path.dirname(DB_PATH), "autoblock.json")
+
+_AUTOBLOCK_DEFAULTS: dict = {"enabled": False, "threshold": 20, "baselines": {}}
+
+
+def _read_autoblock_file() -> dict:
+    try:
+        with open(AUTOBLOCK_CONFIG, "r") as f:
+            return _json.load(f)
+    except (FileNotFoundError, ValueError, KeyError):
+        return dict(_AUTOBLOCK_DEFAULTS)
+
+
+def _write_autoblock_file(data: dict):
+    os.makedirs(os.path.dirname(AUTOBLOCK_CONFIG), exist_ok=True)
+    with open(AUTOBLOCK_CONFIG, "w") as f:
+        _json.dump(data, f)
+
+
+def get_autoblock_config() -> dict:
+    data = _read_autoblock_file()
+    return {
+        "enabled": bool(data.get("enabled", False)),
+        "threshold": int(data.get("threshold", 20)),
+    }
+
+
+def set_autoblock_config(*, enabled: bool | None = None, threshold: int | None = None) -> dict:
+    data = _read_autoblock_file()
+    if enabled is not None:
+        data["enabled"] = enabled
+    if threshold is not None:
+        data["threshold"] = max(1, threshold)
+    _write_autoblock_file(data)
+    return {
+        "enabled": data["enabled"],
+        "threshold": data["threshold"],
+    }
+
+
+def get_session_count(ip: str) -> int:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM attacker_session WHERE ip = ?", (ip,)
+        ).fetchone()
+        return row[0]
+
+
+def get_sessions_since_baseline(ip: str) -> int:
+    """Sessions since last unblock (or all sessions if never unblocked)."""
+    data = _read_autoblock_file()
+    baseline = data.get("baselines", {}).get(ip, 0)
+    return max(0, get_session_count(ip) - baseline)
+
+
+def save_baseline(ip: str):
+    """Save current session count as baseline so the IP gets fresh chances."""
+    data = _read_autoblock_file()
+    if "baselines" not in data:
+        data["baselines"] = {}
+    data["baselines"][ip] = get_session_count(ip)
+    _write_autoblock_file(data)
+
+
+def get_chances_left(ip: str) -> int:
+    """How many sessions remain before auto-block triggers."""
+    cfg = get_autoblock_config()
+    since = get_sessions_since_baseline(ip)
+    return max(0, cfg["threshold"] - since)
 
 
 if __name__ == "__main__":

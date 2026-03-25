@@ -79,6 +79,12 @@ def stats():
 @app.route("/api/attackers")
 def attackers():
     rows = db.get_attackers()
+    cfg = db.get_autoblock_config()
+    for row in rows:
+        if cfg["enabled"]:
+            row["chances_left"] = db.get_chances_left(row["ip"])
+        else:
+            row["chances_left"] = None
     return jsonify(rows)
 
 
@@ -121,6 +127,37 @@ def unblock():
 
     db.remove_block(ip)
     return jsonify({"success": True, "message": fw_result["message"]})
+
+
+# ---------------------------------------------------------------------------
+# Auto-blocking
+# ---------------------------------------------------------------------------
+@app.route("/api/autoblock/status")
+def autoblock_status():
+    cfg = db.get_autoblock_config()
+    return jsonify(cfg)
+
+
+@app.route("/api/autoblock/toggle", methods=["POST"])
+def autoblock_toggle():
+    cfg = db.get_autoblock_config()
+    new_cfg = db.set_autoblock_config(enabled=not cfg["enabled"])
+    return jsonify(new_cfg)
+
+
+@app.route("/api/autoblock/threshold", methods=["POST"])
+def autoblock_threshold():
+    body = request.get_json(silent=True)
+    if not body or "threshold" not in body:
+        return jsonify({"success": False, "message": "Missing 'threshold' in request body"}), 400
+    try:
+        threshold = int(body["threshold"])
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Threshold must be an integer"}), 400
+    if threshold < 1:
+        return jsonify({"success": False, "message": "Threshold must be at least 1"}), 400
+    new_cfg = db.set_autoblock_config(threshold=threshold)
+    return jsonify(new_cfg)
 
 
 # ---------------------------------------------------------------------------
