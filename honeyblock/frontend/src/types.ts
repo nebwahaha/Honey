@@ -26,6 +26,8 @@ export interface Stats {
   top_ips: { ip: string; count: number }[]
   top_usernames: { username_attempt: string; count: number }[]
   top_passwords: { password_attempt: string; count: number }[]
+  protocol_counts: { protocol: string; count: number }[]
+  hourly_histogram: { hour: string; events: number; unique_ips: number }[]
 }
 
 export interface BlockEntry {

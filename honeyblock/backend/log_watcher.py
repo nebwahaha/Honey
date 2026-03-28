@@ -145,6 +145,17 @@ def _parse_line(raw: str):
     else:
         session_duration = entry.get("timestamp", datetime.now(timezone.utc).isoformat())
 
+    # Detect protocol from Cowrie log fields
+    proto_field = entry.get("protocol", "").lower()
+    system_field = entry.get("system", "").lower()
+    combined = proto_field + " " + system_field
+    if "telnet" in combined:
+        protocol = "Telnet"
+    elif "sftp" in combined:
+        protocol = "SFTP"
+    else:
+        protocol = "SSH"
+
     session = {
         "ip": ip,
         "session_duration": session_duration,
@@ -152,6 +163,7 @@ def _parse_line(raw: str):
         "username_attempt": entry.get("username"),
         "password_attempt": entry.get("password"),
         "command_used": entry.get("input"),
+        "protocol": protocol,
         "timestamp": entry.get("timestamp", datetime.now(timezone.utc).isoformat()),
     }
 

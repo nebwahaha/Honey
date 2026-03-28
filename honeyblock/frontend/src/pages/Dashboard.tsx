@@ -4,6 +4,9 @@ import StatCard from '../components/StatCard'
 import TopAttackersChart from '../components/TopAttackersChart'
 import AttackMap from '../components/AttackMap'
 import LiveFeed from '../components/LiveFeed'
+import CountryPieChart from '../components/CountryPieChart'
+import ProtocolChart from '../components/ProtocolChart'
+import EventsHistogram from '../components/EventsHistogram'
 
 function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -125,7 +128,7 @@ function Dashboard() {
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
           <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
             Top 5 Attacker IPs
@@ -133,7 +136,7 @@ function Dashboard() {
           <TopAttackersChart data={stats?.top_ips?.slice(0, 5) ?? []} />
         </div>
 
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, gridColumn: 'span 2' }}>
           <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
             General Location of Attacks
           </h3>
@@ -141,8 +144,8 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Top usernames & passwords */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      {/* Top usernames, passwords & country pie chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
           <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
             Cowrie Top 10 Usernames
@@ -191,6 +194,30 @@ function Dashboard() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            Countries
+          </h3>
+          <CountryPieChart attackers={attackers} />
+        </div>
+      </div>
+
+      {/* Protocol breakdown & events histogram */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 24 }}>
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            Attack Protocols
+          </h3>
+          <ProtocolChart data={stats?.protocol_counts ?? []} />
+        </div>
+
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            Honeypot Events Histogram
+          </h3>
+          <EventsHistogram data={stats?.hourly_histogram ?? []} />
         </div>
       </div>
 

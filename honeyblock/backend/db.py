@@ -1,7 +1,7 @@
 import sqlite3
 import os
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 DB_PATH = "/opt/honeyblock/honeyblock.db"
 
@@ -34,6 +34,7 @@ def init_db():
                 username_attempt VARCHAR(255),
                 password_attempt VARCHAR(255),
                 command_used VARCHAR(255),
+                protocol VARCHAR(20),
                 timestamp TEXT
             )
         """)
@@ -61,12 +62,17 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_session_timestamp ON attacker_session(timestamp)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_blocklist_ip ON blocklist(ip)")
 
+        # Migration: add protocol column if missing
+        cols = [row[1] for row in conn.execute("PRAGMA table_info(attacker_session)").fetchall()]
+        if "protocol" not in cols:
+            conn.execute("ALTER TABLE attacker_session ADD COLUMN protocol VARCHAR(20)")
+
 
 def insert_session(data: dict):
     with get_connection() as conn:
         conn.execute(
-            """INSERT INTO attacker_session (ip, session_duration, event_type, username_attempt, password_attempt, command_used, timestamp)
-               VALUES (:ip, :session_duration, :event_type, :username_attempt, :password_attempt, :command_used, :timestamp)""",
+            """INSERT INTO attacker_session (ip, session_duration, event_type, username_attempt, password_attempt, command_used, protocol, timestamp)
+               VALUES (:ip, :session_duration, :event_type, :username_attempt, :password_attempt, :command_used, :protocol, :timestamp)""",
             {
                 "ip": data["ip"],
                 "session_duration": data.get("session_duration", datetime.now(timezone.utc).isoformat()),
@@ -74,6 +80,7 @@ def insert_session(data: dict):
                 "username_attempt": data.get("username_attempt"),
                 "password_attempt": data.get("password_attempt"),
                 "command_used": data.get("command_used"),
+                "protocol": data.get("protocol"),
                 "timestamp": data.get("timestamp", datetime.now(timezone.utc).isoformat()),
             },
         )
@@ -108,6 +115,19 @@ def get_stats() -> dict:
             "GROUP BY password_attempt ORDER BY count DESC LIMIT 10"
         ).fetchall()
 
+        protocol_counts = conn.execute(
+            "SELECT protocol, COUNT(*) as count FROM attacker_session WHERE protocol IS NOT NULL "
+            "GROUP BY protocol ORDER BY count DESC"
+        ).fetchall()
+
+        # Hourly histogram of all events
+        hourly_rows = conn.execute(
+            "SELECT strftime('%Y-%m-%dT%H:00:00', timestamp) as hour, "
+            "COUNT(*) as events, COUNT(DISTINCT ip) as unique_ips "
+            "FROM attacker_session WHERE timestamp IS NOT NULL "
+            "GROUP BY hour ORDER BY hour"
+        ).fetchall()
+
         return {
             "total_attempts": total,
             "unique_ips": unique_ips,
@@ -115,6 +135,8 @@ def get_stats() -> dict:
             "top_ips": [dict(r) for r in top_ips],
             "top_usernames": [dict(r) for r in top_usernames],
             "top_passwords": [dict(r) for r in top_passwords],
+            "protocol_counts": [dict(r) for r in protocol_counts],
+            "hourly_histogram": [dict(r) for r in hourly_rows],
         }
 
 
