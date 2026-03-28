@@ -103,12 +103,18 @@ def get_stats() -> dict:
             "GROUP BY username_attempt ORDER BY count DESC LIMIT 10"
         ).fetchall()
 
+        top_passwords = conn.execute(
+            "SELECT password_attempt, COUNT(*) as count FROM attacker_session WHERE password_attempt IS NOT NULL "
+            "GROUP BY password_attempt ORDER BY count DESC LIMIT 10"
+        ).fetchall()
+
         return {
             "total_attempts": total,
             "unique_ips": unique_ips,
             "blocked_ips": blocked,
             "top_ips": [dict(r) for r in top_ips],
             "top_usernames": [dict(r) for r in top_usernames],
+            "top_passwords": [dict(r) for r in top_passwords],
         }
 
 

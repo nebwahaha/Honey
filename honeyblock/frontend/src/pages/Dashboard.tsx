@@ -141,6 +141,59 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Top usernames & passwords */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            Cowrie Top 10 Usernames
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #1e2a3a' }}>
+                <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Usernames</th>
+                <th style={{ textAlign: 'right', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(stats?.top_usernames ?? []).map((entry, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #1e2a3a' }}>
+                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13 }}>{entry.username_attempt}</td>
+                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13, textAlign: 'right' }}>{entry.count}</td>
+                </tr>
+              ))}
+              {(stats?.top_usernames ?? []).length === 0 && (
+                <tr><td colSpan={2} style={{ padding: '16px 12px', color: '#6b7280', fontSize: 13, textAlign: 'center' }}>No data yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            Cowrie Top 10 Passwords
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #1e2a3a' }}>
+                <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Top 10 Passwords</th>
+                <th style={{ textAlign: 'right', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(stats?.top_passwords ?? []).map((entry, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #1e2a3a' }}>
+                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13 }}>{entry.password_attempt}</td>
+                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13, textAlign: 'right' }}>{entry.count}</td>
+                </tr>
+              ))}
+              {(stats?.top_passwords ?? []).length === 0 && (
+                <tr><td colSpan={2} style={{ padding: '16px 12px', color: '#6b7280', fontSize: 13, textAlign: 'center' }}>No data yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Live feed - raw Cowrie logs */}
       <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
         <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>

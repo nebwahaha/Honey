@@ -25,6 +25,7 @@ export interface Stats {
   attempts_last_24h: number
   top_ips: { ip: string; count: number }[]
   top_usernames: { username_attempt: string; count: number }[]
+  top_passwords: { password_attempt: string; count: number }[]
 }
 
 export interface BlockEntry {
