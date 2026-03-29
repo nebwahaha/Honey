@@ -17,6 +17,9 @@ function Sidebar() {
     <aside
       style={{
         width: 220,
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
         background: '#111521',
         borderRight: '1px solid #1e2433',
         display: 'flex',

@@ -13,9 +13,14 @@ function EventsHistogram({ data }: Props) {
     )
   }
 
+  const isDaily = data.length > 1 &&
+    data[0].hour.endsWith('T00:00:00') && data[1].hour.endsWith('T00:00:00')
+
   const formatted = data.map(d => ({
     ...d,
-    label: new Date(d.hour).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    label: isDaily
+      ? new Date(d.hour).toLocaleDateString([], { month: 'short', day: 'numeric' })
+      : new Date(d.hour).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   }))
 
   return (
@@ -27,6 +32,8 @@ function EventsHistogram({ data }: Props) {
           tick={{ fill: '#6b7280', fontSize: 11 }}
           axisLine={false}
           tickLine={false}
+          interval="preserveStartEnd"
+          minTickGap={60}
         />
         <YAxis
           tick={{ fill: '#6b7280', fontSize: 11 }}

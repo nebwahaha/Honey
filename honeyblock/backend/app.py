@@ -215,6 +215,20 @@ def _cowrie_is_active() -> bool:
     return result.stdout.strip() == "active"
 
 
+@app.route("/api/unique-ips")
+def unique_ips():
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 50, type=int)
+    limit = max(1, min(limit, 200))
+    offset = (max(1, page) - 1) * limit
+    return jsonify(db.get_unique_ips_paginated(limit=limit, offset=offset))
+
+
+@app.route("/api/active-sessions")
+def active_sessions():
+    return jsonify(db.get_active_sessions())
+
+
 @app.route("/api/cowrie/status")
 def cowrie_status():
     try:

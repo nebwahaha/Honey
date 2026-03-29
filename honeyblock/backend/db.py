@@ -120,9 +120,19 @@ def get_stats() -> dict:
             "GROUP BY protocol ORDER BY count DESC"
         ).fetchall()
 
-        # Hourly histogram of all events
+        # Histogram: hourly if <= 48 buckets, daily otherwise
+        hour_count = conn.execute(
+            "SELECT COUNT(DISTINCT strftime('%Y-%m-%dT%H', timestamp)) "
+            "FROM attacker_session WHERE timestamp IS NOT NULL"
+        ).fetchone()[0]
+
+        if hour_count <= 48:
+            bucket_fmt = '%Y-%m-%dT%H:00:00'
+        else:
+            bucket_fmt = '%Y-%m-%dT00:00:00'
+
         hourly_rows = conn.execute(
-            "SELECT strftime('%Y-%m-%dT%H:00:00', timestamp) as hour, "
+            f"SELECT strftime('{bucket_fmt}', timestamp) as hour, "
             "COUNT(*) as events, COUNT(DISTINCT ip) as unique_ips "
             "FROM attacker_session WHERE timestamp IS NOT NULL "
             "GROUP BY hour ORDER BY hour"
@@ -299,6 +309,28 @@ def get_chances_left(ip: str) -> int:
     cfg = get_autoblock_config()
     since = get_sessions_since_baseline(ip)
     return max(0, cfg["threshold"] - since)
+
+
+def get_unique_ips_paginated(limit: int = 50, offset: int = 0) -> dict:
+    with get_connection() as conn:
+        total = conn.execute("SELECT COUNT(DISTINCT ip) FROM attacker_session").fetchone()[0]
+        rows = conn.execute(
+            "SELECT ip, COUNT(*) as attack_count, MAX(timestamp) as last_seen "
+            "FROM attacker_session GROUP BY ip ORDER BY attack_count DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        ).fetchall()
+        return {"total": total, "data": [dict(r) for r in rows]}
+
+
+def get_active_sessions(minutes: int = 5) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT ip, MAX(timestamp) as last_seen "
+            "FROM attacker_session WHERE timestamp >= ? GROUP BY ip ORDER BY last_seen DESC",
+            (cutoff,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 if __name__ == "__main__":
