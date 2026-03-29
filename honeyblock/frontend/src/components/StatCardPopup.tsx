@@ -140,7 +140,7 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '10px 20px', borderBottom: '1px solid #1e2a3a',
                 }}>
-                  <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: 'monospace' }}>{r.primary}</span>
+                  <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>{r.primary}</span>
                   {r.secondary && (
                     <span style={{ color: '#7b8cde', fontSize: 12, fontWeight: 600 }}>{r.secondary}</span>
                   )}

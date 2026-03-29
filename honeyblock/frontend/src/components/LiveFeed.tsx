@@ -145,7 +145,7 @@ function LiveFeed() {
         borderRadius: 6,
         maxHeight: 400,
         overflowY: 'auto',
-        fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
+        fontFamily: "'JetBrains Mono', 'Consolas', monospace",
         fontSize: 13,
       }}
     >

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Stats, SessionEntry, Attacker } from '../types'
+import type { Stats, Attacker } from '../types'
 import StatCard from '../components/StatCard'
 import TopAttackersChart from '../components/TopAttackersChart'
 import AttackMap from '../components/AttackMap'
@@ -8,33 +8,34 @@ import CountryPieChart from '../components/CountryPieChart'
 import StatCardPopup from '../components/StatCardPopup'
 import ProtocolChart from '../components/ProtocolChart'
 import EventsHistogram from '../components/EventsHistogram'
+import NotificationBell from '../components/NotificationBell'
 
 function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
-  const [sessions, setSessions] = useState<SessionEntry[]>([])
   const [attackers, setAttackers] = useState<Attacker[]>([])
+  const [activeSessions, setActiveSessions] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string>('')
 
   const fetchData = async () => {
     try {
-      const [statsRes, sessionsRes, attackersRes] = await Promise.all([
+      const [statsRes, attackersRes, activeRes] = await Promise.all([
         fetch('/api/stats'),
-        fetch('/api/attempts?limit=50'),
         fetch('/api/attackers'),
+        fetch('/api/active-sessions'),
       ])
 
       if (statsRes.ok) {
         const data: Stats = await statsRes.json()
         setStats(data)
       }
-      if (sessionsRes.ok) {
-        const data = await sessionsRes.json()
-        setSessions(data.data ?? [])
-      }
       if (attackersRes.ok) {
         const data: Attacker[] = await attackersRes.json()
         setAttackers(data)
+      }
+      if (activeRes.ok) {
+        const data = await activeRes.json()
+        setActiveSessions((data ?? []).length)
       }
 
       setLastUpdated(new Date().toLocaleTimeString())
@@ -51,17 +52,6 @@ function Dashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  // Count active sessions (sessions from last 5 min)
-  const activeSessions = (() => {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const activeIps = new Set(
-      sessions
-        .filter(s => s.event_type === 'cowrie.session.connect' && s.timestamp >= fiveMinAgo)
-        .map(s => s.ip)
-    )
-    return activeIps.size
-  })()
-
   if (loading) {
     return (
       <div style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -74,11 +64,12 @@ function Dashboard() {
     <div>
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 700 }}>
+        <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 800 }}>
           Honeypot Monitoring Dashboard
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: '#6b7280', fontSize: 13 }}>Last updated: {lastUpdated}</span>
+          <NotificationBell />
           <button
             onClick={fetchData}
             style={{
@@ -166,14 +157,14 @@ function Dashboard() {
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             Top 5 Attacker IPs
           </h3>
           <TopAttackersChart data={stats?.top_ips?.slice(0, 5) ?? []} />
         </div>
 
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, gridColumn: 'span 2' }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             General Location of Attacks
           </h3>
           <AttackMap attackers={attackers} />
@@ -183,7 +174,7 @@ function Dashboard() {
       {/* Top usernames, passwords & country pie chart */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             Cowrie Top 10 Usernames
           </h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -208,7 +199,7 @@ function Dashboard() {
         </div>
 
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             Cowrie Top 10 Passwords
           </h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -233,7 +224,7 @@ function Dashboard() {
         </div>
 
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             Countries
           </h3>
           <CountryPieChart attackers={attackers} />
@@ -241,16 +232,16 @@ function Dashboard() {
       </div>
 
       {/* Protocol breakdown & events histogram */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             Attack Protocols
           </h3>
           <ProtocolChart data={stats?.protocol_counts ?? []} />
         </div>
 
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, gridColumn: 'span 2' }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
             Honeypot Events Histogram
           </h3>
           <EventsHistogram data={stats?.hourly_histogram ?? []} />
@@ -259,7 +250,7 @@ function Dashboard() {
 
       {/* Live feed - raw Cowrie logs */}
       <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
           Live Feed for Logs
         </h3>
         <LiveFeed />

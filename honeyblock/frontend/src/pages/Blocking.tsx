@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import type { Attacker, BlockEntry } from '../types'
+import NotificationBell from '../components/NotificationBell'
 
 function Blocking() {
   const [attackers, setAttackers] = useState<Attacker[]>([])
@@ -10,20 +11,6 @@ function Blocking() {
   const [threshold, setThreshold] = useState(20)
   const [thresholdInput, setThresholdInput] = useState('20')
   const [savingThreshold, setSavingThreshold] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
-  const [seenCount, setSeenCount] = useState(0)
-  const notifRef = useRef<HTMLDivElement>(null)
-
-  // Close notif panel on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   const fetchData = async () => {
     try {
@@ -143,84 +130,13 @@ function Blocking() {
     fontSize: 13,
   }
 
-  const unseenCount = Math.max(0, blocklist.length - seenCount)
-
   return (
     <div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 700 }}>IP Blocking</h1>
+        <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 800 }}>IP Blocking</h1>
 
-        {/* Notification bell */}
-        <div ref={notifRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => { setNotifOpen(o => !o); setSeenCount(blocklist.length) }}
-            style={{
-              position: 'relative', width: 40, height: 40, borderRadius: 8,
-              background: notifOpen ? '#2a3558' : '#1c2540',
-              border: '1px solid #2a3558', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            {unseenCount > 0 && (
-              <span style={{
-                position: 'absolute', top: -4, right: -4,
-                background: '#e74c3c', color: '#fff',
-                borderRadius: '50%', width: 18, height: 18,
-                fontSize: 10, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {unseenCount > 99 ? '99+' : unseenCount}
-              </span>
-            )}
-          </button>
-
-          {/* Dropdown panel */}
-          {notifOpen && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-              width: 360, maxHeight: 420,
-              background: '#151a28', border: '1px solid #2a3558',
-              borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              zIndex: 200, display: 'flex', flexDirection: 'column',
-              overflow: 'hidden',
-            }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e2a3a' }}>
-                <span style={{ color: '#ffffff', fontSize: 14, fontWeight: 600 }}>Block History</span>
-              </div>
-              <div style={{ overflowY: 'auto', flex: 1 }}>
-                {blocklist.length === 0 ? (
-                  <div style={{ color: '#6b7280', fontSize: 13, padding: 20, textAlign: 'center' }}>No blocks yet.</div>
-                ) : (
-                  [...blocklist].reverse().map((b) => (
-                    <div key={b.block_id} style={{
-                      padding: '10px 16px', borderBottom: '1px solid #1e2a3a',
-                      display: 'flex', flexDirection: 'column', gap: 3,
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: 'monospace', fontWeight: 600 }}>{b.ip}</span>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
-                          background: b.is_active === 'Block_active' ? '#2d1b1b' : '#1a1f2e',
-                          color: b.is_active === 'Block_active' ? '#f85149' : '#6b7280',
-                        }}>
-                          {b.is_active === 'Block_active' ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <div style={{ color: '#6b7280', fontSize: 11 }}>
-                        {b.blocked_by === 'system' ? 'Auto-blocked by system' : 'Manually blocked'}
-                        {' · '}{new Date(b.block_date).toLocaleString()}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationBell />
       </div>
 
       {message && message.error && (
@@ -246,7 +162,7 @@ function Blocking() {
         }}
       >
         <div>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
             Automatic Blocking — Session Limit
           </h3>
           <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
@@ -314,7 +230,7 @@ function Blocking() {
 
       {/* Attacker list with block/unblock buttons */}
       <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, marginBottom: 24 }}>
-        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
           Detected Attackers
         </h3>
 
@@ -392,7 +308,7 @@ function Blocking() {
 
       {/* Blocklist history */}
       <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
           Block History
         </h3>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import NotificationBell from '../components/NotificationBell'
 
 function Configurations() {
   const [cowrieRunning, setCowrieRunning] = useState<boolean | null>(null)
@@ -95,9 +96,10 @@ function Configurations() {
 
   return (
     <div>
-      <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
-        Configurations
-      </h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 800 }}>Configurations</h1>
+        <NotificationBell />
+      </div>
 
       {message && (
         <div

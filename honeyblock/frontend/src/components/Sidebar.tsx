@@ -30,7 +30,7 @@ function Sidebar() {
     >
       {/* Logo */}
       <div style={{ padding: '0 6px 28px', borderBottom: '1px solid #1e2433', marginBottom: 20 }}>
-        <div style={{ color: '#7b8cde', fontWeight: 700, fontSize: 20 }}>HoneyBlock</div>
+        <div style={{ color: '#7b8cde', fontWeight: 900, fontSize: 20, letterSpacing: '-0.3px' }}>HoneyBlock</div>
         <div style={{ color: '#555b70', fontSize: 12, marginTop: 2 }}>Dashboard</div>
       </div>
 

@@ -322,12 +322,29 @@ def get_unique_ips_paginated(limit: int = 50, offset: int = 0) -> dict:
         return {"total": total, "data": [dict(r) for r in rows]}
 
 
-def get_active_sessions(minutes: int = 5) -> list[dict]:
+def get_active_sessions(minutes: int = 30) -> list[dict]:
+    """Return IPs with an open session: most recent connect is newer than most recent close."""
     cutoff = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT ip, MAX(timestamp) as last_seen "
-            "FROM attacker_session WHERE timestamp >= ? GROUP BY ip ORDER BY last_seen DESC",
+            """
+            SELECT c.ip, c.last_connect AS last_seen
+            FROM (
+                SELECT ip, MAX(timestamp) AS last_connect
+                FROM attacker_session
+                WHERE event_type = 'cowrie.session.connect'
+                  AND timestamp >= ?
+                GROUP BY ip
+            ) c
+            LEFT JOIN (
+                SELECT ip, MAX(timestamp) AS last_close
+                FROM attacker_session
+                WHERE event_type = 'cowrie.session.closed'
+                GROUP BY ip
+            ) cl ON c.ip = cl.ip
+            WHERE cl.last_close IS NULL OR c.last_connect > cl.last_close
+            ORDER BY c.last_connect DESC
+            """,
             (cutoff,),
         ).fetchall()
         return [dict(r) for r in rows]
