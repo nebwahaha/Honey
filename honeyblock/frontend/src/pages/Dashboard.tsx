@@ -63,10 +63,7 @@ function Dashboard() {
   return (
     <div>
       {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ color: '#ffffff', fontSize: 22, fontWeight: 800 }}>
-          Honeypot Monitoring Dashboard
-        </h1>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: '#6b7280', fontSize: 13 }}>Last updated: {lastUpdated}</span>
           <NotificationBell />
