@@ -33,7 +33,7 @@ function Sidebar() {
     >
       {/* Logo */}
       <div style={{ padding: '0 6px 28px', borderBottom: `1px solid ${theme.sidebarBorder}`, marginBottom: 20 }}>
-        <div style={{ color: theme.brand, fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px' }}>HoneyBlock</div>
+        <div style={{ color: theme.brand, fontFamily: "'Bungee', cursive", fontSize: 22, letterSpacing: '0.5px', lineHeight: 1.2 }}>HoneyBlock</div>
       </div>
 
       {/* Nav links */}

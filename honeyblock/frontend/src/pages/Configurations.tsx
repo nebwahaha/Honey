@@ -108,8 +108,10 @@ function Configurations() {
 
   const themeLabels: Record<string, string> = {
     dark: 'Dark',
-    'soft-light': 'Soft Light',
+    'soft-light': 'Light',
     forest: 'Forest',
+    ocean: 'Ocean',
+    sky: 'Sky',
   }
 
   return (

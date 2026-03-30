@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 :root {
@@ -15,7 +16,7 @@ body {
   background: var(--page-bg);
   color: var(--text);
   min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 a {
