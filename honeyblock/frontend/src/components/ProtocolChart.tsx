@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
+import { useTheme } from '../theme'
 
 const COLORS: Record<string, string> = {
   SSH: '#3498db',
@@ -11,9 +12,11 @@ interface Props {
 }
 
 function ProtocolChart({ data }: Props) {
+  const { theme } = useTheme()
+
   if (data.length === 0) {
     return (
-      <div style={{ color: '#6b7280', textAlign: 'center', padding: 40 }}>
+      <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 40 }}>
         No protocol data yet.
       </div>
     )
@@ -36,22 +39,22 @@ function ProtocolChart({ data }: Props) {
           endAngle={270}
           outerRadius={120}
           innerRadius={68}
-          stroke="#151a28"
+          stroke={theme.pieStroke}
           strokeWidth={2}
           paddingAngle={2}
         >
           {chartData.map((d) => (
-            <Cell key={d.name} fill={COLORS[d.name] ?? '#6b7280'} />
+            <Cell key={d.name} fill={COLORS[d.name] ?? theme.textSecondary} />
           ))}
         </Pie>
         <Tooltip
           contentStyle={{
-            background: '#1c2540',
-            border: '1px solid #2a3558',
+            background: theme.tooltipBg,
+            border: `1px solid ${theme.tooltipBorder}`,
             borderRadius: 6,
-            color: '#c9d1d9',
+            color: theme.textPrimary,
             fontSize: 12,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: `0 4px 12px ${theme.shadow}`,
           }}
           formatter={(value, name) => [`${value} (${((Number(value) / total) * 100).toFixed(1)}%)`, name]}
         />
@@ -63,12 +66,12 @@ function ProtocolChart({ data }: Props) {
           <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 11, height: 11, borderRadius: '50%',
-              background: COLORS[d.name] ?? '#6b7280',
+              background: COLORS[d.name] ?? theme.textSecondary,
               flexShrink: 0,
-              boxShadow: `0 0 6px ${COLORS[d.name] ?? '#6b7280'}`,
+              boxShadow: `0 0 6px ${COLORS[d.name] ?? theme.textSecondary}`,
             }} />
-            <span style={{ color: '#9ca3af', fontSize: 13 }}>
-              {d.name}:&nbsp;<span style={{ color: '#ffffff', fontWeight: 700 }}>{d.value}</span>
+            <span style={{ color: theme.textTertiary, fontSize: 13 }}>
+              {d.name}:&nbsp;<span style={{ color: theme.heading, fontWeight: 700 }}>{d.value}</span>
             </span>
           </div>
         ))}

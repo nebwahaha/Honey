@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps'
 import type { Attacker } from '../types'
+import { useTheme } from '../theme'
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
@@ -95,29 +96,28 @@ interface Props {
   attackers: Attacker[]
 }
 
-const btnStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#1c2540',
-  border: '1px solid #2a3558',
-  borderRadius: 4,
-  color: '#9ca3af',
-  fontSize: 16,
-  cursor: 'pointer',
-  lineHeight: 1,
-}
-
 function AttackMap({ attackers }: Props) {
+  const { theme } = useTheme()
   const [zoom, setZoom] = useState(1.8)
   const [center, setCenter] = useState<[number, number]>([40, 25])
   const [tooltip, setTooltip] = useState<{ country: string; count: number; x: number; y: number } | null>(null)
   const mapRef = useRef<HTMLDivElement>(null)
 
-  // Block wheel events on the SVG (which d3-zoom listens on) but not on the container div,
-  // so the page still scrolls normally.
+  const btnStyle: React.CSSProperties = {
+    width: 28,
+    height: 28,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: theme.btnBg,
+    border: `1px solid ${theme.btnBorder}`,
+    borderRadius: 4,
+    color: theme.btnText,
+    fontSize: 16,
+    cursor: 'pointer',
+    lineHeight: 1,
+  }
+
   useEffect(() => {
     const el = mapRef.current
     if (!el) return
@@ -131,7 +131,6 @@ function AttackMap({ attackers }: Props) {
   const handleZoomIn = () => setZoom((z) => Math.min(z * 1.4, 8))
   const handleZoomOut = () => setZoom((z) => Math.max(z / 1.4, 1))
 
-  // Clamp center so the map can't be dragged out of bounds
   const handleMoveEnd = ({ coordinates, zoom: z }: { coordinates: [number, number]; zoom: number }) => {
     const lng = Math.max(-180, Math.min(180, coordinates[0]))
     const lat = Math.max(-60, Math.min(75, coordinates[1]))
@@ -139,7 +138,6 @@ function AttackMap({ attackers }: Props) {
     setZoom(z)
   }
 
-  // Build markers from attackers that have a known country
   const markers = attackers
     .filter(a => a.country && COUNTRY_COORDS[a.country])
     .reduce<{ country: string; coords: [number, number]; count: number }[]>((acc, a) => {
@@ -177,12 +175,12 @@ function AttackMap({ attackers }: Props) {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill="#1e2a3a"
-                  stroke="#2a3558"
+                  fill={theme.mapFill}
+                  stroke={theme.mapStroke}
                   strokeWidth={0.5}
                   style={{
                     default: { outline: 'none' },
-                    hover: { fill: '#2a3558', outline: 'none' },
+                    hover: { fill: theme.mapStroke, outline: 'none' },
                     pressed: { outline: 'none' },
                   }}
                 />
@@ -194,9 +192,9 @@ function AttackMap({ attackers }: Props) {
             <Marker key={m.country} coordinates={m.coords}>
               <circle
                 r={Math.min(4 + m.count * 2, 14) / Math.sqrt(zoom)}
-                fill="#f5a623"
+                fill={theme.mapMarker}
                 opacity={0.85}
-                stroke="#f5a623"
+                stroke={theme.mapMarker}
                 strokeWidth={2 / Math.sqrt(zoom)}
                 strokeOpacity={0.4}
                 style={{ cursor: 'pointer' }}
@@ -227,19 +225,19 @@ function AttackMap({ attackers }: Props) {
             left: tooltip.x,
             top: tooltip.y,
             transform: 'translate(-50%, -100%)',
-            background: '#1c2540',
-            border: '1px solid #2a3558',
+            background: theme.tooltipBg,
+            border: `1px solid ${theme.tooltipBorder}`,
             borderRadius: 6,
             padding: '6px 10px',
-            color: '#c9d1d9',
+            color: theme.textPrimary,
             fontSize: 12,
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: `0 4px 12px ${theme.shadow}`,
             zIndex: 10,
           }}
         >
-          <div style={{ fontWeight: 600, color: '#ffffff' }}>{tooltip.country}</div>
+          <div style={{ fontWeight: 600, color: theme.heading }}>{tooltip.country}</div>
           <div>{tooltip.count} attacker{tooltip.count !== 1 ? 's' : ''}</div>
         </div>
       )}
@@ -257,7 +255,7 @@ function AttackMap({ attackers }: Props) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            color: '#6b7280',
+            color: theme.textSecondary,
             fontSize: 13,
           }}
         >

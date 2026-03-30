@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import type { BlockEntry } from '../types'
+import { useTheme } from '../theme'
 
 const SEEN_BLOCKS_KEY = 'hb_notif_seen_blocks'
 const SEEN_ACTIVE_KEY = 'hb_notif_seen_active'
 
-type Section = 'active' | 'system' | 'manual'
+type Section = 'active' | 'system'
 
 interface ActiveSession {
   ip: string
@@ -33,6 +34,7 @@ function SectionHeader({
   color: string
   onClick: () => void
 }) {
+  const { theme } = useTheme()
   const [hovered, setHovered] = useState(false)
   return (
     <div
@@ -42,8 +44,8 @@ function SectionHeader({
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '11px 16px', cursor: 'pointer',
-        background: hovered ? '#1c2540' : 'transparent',
-        borderBottom: '1px solid #1e2a3a',
+        background: hovered ? theme.cardHoverBg : 'transparent',
+        borderBottom: `1px solid ${theme.cardBorder}`,
         transition: 'background 0.15s',
         userSelect: 'none',
       }}
@@ -54,10 +56,10 @@ function SectionHeader({
           background: color, flexShrink: 0,
           boxShadow: `0 0 6px ${color}`,
         }} />
-        <span style={{ color: '#c9d1d9', fontSize: 13, fontWeight: 600 }}>{label}</span>
+        <span style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 600 }}>{label}</span>
         {badge !== undefined && badge > 0 && (
           <span style={{
-            background: '#e74c3c', color: '#fff',
+            background: theme.badgeRed, color: '#fff',
             borderRadius: 4, padding: '1px 6px',
             fontSize: 10, fontWeight: 700,
           }}>
@@ -66,7 +68,7 @@ function SectionHeader({
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: '#6b7280', fontSize: 12 }}>{count}</span>
+        <span style={{ color: theme.textSecondary, fontSize: 12 }}>{count}</span>
         <ChevronIcon expanded={expanded} />
       </div>
     </div>
@@ -74,6 +76,7 @@ function SectionHeader({
 }
 
 function NotificationBell() {
+  const { theme } = useTheme()
   const [blocklist, setBlocklist] = useState<BlockEntry[]>([])
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [seenBlocks, setSeenBlocks] = useState<number>(() => {
@@ -124,7 +127,6 @@ function NotificationBell() {
   }, [])
 
   const autoBlocked = blocklist.filter(b => b.blocked_by === 'Auto')
-  const manualBlocked = blocklist.filter(b => b.blocked_by !== 'Auto' && b.blocked_by !== null)
 
   const unseenBlocks = Math.max(0, blocklist.length - seenBlocks)
   const unseenActive = Math.max(0, activeSessions.length - seenActive)
@@ -152,9 +154,9 @@ function NotificationBell() {
         onClick={handleOpen}
         style={{
           position: 'relative', width: 40, height: 40, borderRadius: 8,
-          background: open ? '#2a3558' : '#1c2540',
-          border: '1px solid #2a3558', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af',
+          background: open ? theme.navActiveBg : theme.btnBg,
+          border: `2px solid ${theme.btnBorder}`, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.btnText,
         }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -164,7 +166,7 @@ function NotificationBell() {
         {totalBadge > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -4,
-            background: '#e74c3c', color: '#fff',
+            background: theme.badgeRed, color: '#fff',
             borderRadius: '50%', width: 18, height: 18,
             fontSize: 10, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -179,40 +181,40 @@ function NotificationBell() {
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
           width: 380,
-          background: '#151a28', border: '1px solid #2a3558',
-          borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          background: theme.cardBg, border: `2px solid ${theme.tooltipBorder}`,
+          borderRadius: 10, boxShadow: `0 8px 32px ${theme.dropdownShadow}`,
           zIndex: 200, overflow: 'hidden',
         }}>
           {/* Panel header */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a3558' }}>
-            <span style={{ color: '#ffffff', fontSize: 14, fontWeight: 700 }}>Notifications</span>
+          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.tooltipBorder}` }}>
+            <span style={{ color: theme.heading, fontSize: 14, fontWeight: 700 }}>Notifications</span>
           </div>
 
-          {/* ── Active Connections ── */}
+          {/* Active Connections */}
           <SectionHeader
             label="Active Connections"
             count={activeSessions.length}
             badge={unseenActive}
             expanded={expanded === 'active'}
-            color="#3fb950"
+            color={theme.success}
             onClick={() => toggleSection('active')}
           />
           {expanded === 'active' && (
-            <div style={{ maxHeight: 220, overflowY: 'auto', borderBottom: '1px solid #1e2a3a' }}>
+            <div style={{ maxHeight: 220, overflowY: 'auto', borderBottom: `1px solid ${theme.cardBorder}` }}>
               {activeSessions.length === 0 ? (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: '12px 20px' }}>No active connections.</div>
+                <div style={{ color: theme.textSecondary, fontSize: 13, padding: '12px 20px' }}>No active connections.</div>
               ) : (
                 activeSessions.map((s, i) => (
                   <div key={i} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '9px 20px', borderBottom: '1px solid #1e2a3a',
-                    background: '#111521',
+                    padding: '9px 20px', borderBottom: `1px solid ${theme.cardBorder}`,
+                    background: theme.notifItemBg,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3fb950', display: 'inline-block', boxShadow: '0 0 5px #3fb950' }} />
-                      <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>{s.ip}</span>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: theme.success, display: 'inline-block', boxShadow: `0 0 5px ${theme.success}` }} />
+                      <span style={{ color: theme.textPrimary, fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>{s.ip}</span>
                     </div>
-                    <span style={{ color: '#6b7280', fontSize: 11 }}>
+                    <span style={{ color: theme.textSecondary, fontSize: 11 }}>
                       {new Date(s.last_seen).toLocaleTimeString()}
                     </span>
                   </div>
@@ -221,77 +223,42 @@ function NotificationBell() {
             </div>
           )}
 
-          {/* ── Blocked by System ── */}
+          {/* Blocked by System */}
           <SectionHeader
             label="Blocked by System"
             count={autoBlocked.length}
             expanded={expanded === 'system'}
-            color="#e74c3c"
+            color={theme.badgeRed}
             onClick={() => toggleSection('system')}
           />
           {expanded === 'system' && (
-            <div style={{ maxHeight: 220, overflowY: 'auto', borderBottom: '1px solid #1e2a3a' }}>
+            <div style={{ maxHeight: 220, overflowY: 'auto', borderBottom: `1px solid ${theme.cardBorder}` }}>
               {autoBlocked.length === 0 ? (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: '12px 20px' }}>No system blocks yet.</div>
+                <div style={{ color: theme.textSecondary, fontSize: 13, padding: '12px 20px' }}>No system blocks yet.</div>
               ) : (
                 [...autoBlocked].reverse().map((b) => (
                   <div key={b.block_id} style={{
-                    padding: '9px 20px', borderBottom: '1px solid #1e2a3a',
-                    background: '#111521',
+                    padding: '9px 20px', borderBottom: `1px solid ${theme.cardBorder}`,
+                    background: theme.notifItemBg,
                     display: 'flex', flexDirection: 'column', gap: 2,
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{b.ip}</span>
+                      <span style={{ color: theme.textPrimary, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{b.ip}</span>
                       <span style={{
                         fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
-                        background: b.is_active === 'Block_active' ? '#2d1b1b' : '#1a1f2e',
-                        color: b.is_active === 'Block_active' ? '#f85149' : '#6b7280',
+                        background: b.is_active === 'Block_active' ? theme.blockStatusActiveBg : theme.blockStatusInactiveBg,
+                        color: b.is_active === 'Block_active' ? theme.error : theme.textSecondary,
                       }}>
                         {b.is_active === 'Block_active' ? 'Active' : 'Inactive'}
                       </span>
                     </div>
-                    <span style={{ color: '#6b7280', fontSize: 11 }}>{new Date(b.block_date).toLocaleString()}</span>
+                    <span style={{ color: theme.textSecondary, fontSize: 11 }}>{new Date(b.block_date).toLocaleString()}</span>
                   </div>
                 ))
               )}
             </div>
           )}
 
-          {/* ── Blocked by User ── */}
-          <SectionHeader
-            label="Blocked by User"
-            count={manualBlocked.length}
-            expanded={expanded === 'manual'}
-            color="#7b8cde"
-            onClick={() => toggleSection('manual')}
-          />
-          {expanded === 'manual' && (
-            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-              {manualBlocked.length === 0 ? (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: '12px 20px' }}>No manual blocks yet.</div>
-              ) : (
-                [...manualBlocked].reverse().map((b) => (
-                  <div key={b.block_id} style={{
-                    padding: '9px 20px', borderBottom: '1px solid #1e2a3a',
-                    background: '#111521',
-                    display: 'flex', flexDirection: 'column', gap: 2,
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{b.ip}</span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
-                        background: b.is_active === 'Block_active' ? '#2d1b1b' : '#1a1f2e',
-                        color: b.is_active === 'Block_active' ? '#f85149' : '#6b7280',
-                      }}>
-                        {b.is_active === 'Block_active' ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    <span style={{ color: '#6b7280', fontSize: 11 }}>{new Date(b.block_date).toLocaleString()}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Stats, Attacker } from '../types'
+import { useTheme } from '../theme'
 import StatCard from '../components/StatCard'
 import TopAttackersChart from '../components/TopAttackersChart'
 import AttackMap from '../components/AttackMap'
@@ -11,6 +12,7 @@ import EventsHistogram from '../components/EventsHistogram'
 import NotificationBell from '../components/NotificationBell'
 
 function Dashboard() {
+  const { theme } = useTheme()
   const [stats, setStats] = useState<Stats | null>(null)
   const [attackers, setAttackers] = useState<Attacker[]>([])
   const [activeSessions, setActiveSessions] = useState<number>(0)
@@ -52,9 +54,36 @@ function Dashboard() {
     return () => clearInterval(interval)
   }, [])
 
+  const cardStyle: React.CSSProperties = {
+    background: theme.cardBg,
+    border: `2px solid ${theme.cardBorder}`,
+    borderRadius: 10,
+    padding: 20,
+  }
+
+  const h3Style: React.CSSProperties = {
+    color: theme.heading,
+    fontSize: 15,
+    fontWeight: 700,
+    marginBottom: 16,
+  }
+
+  const thStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    color: theme.textTertiary,
+    fontSize: 13,
+    fontWeight: 600,
+  }
+
+  const tdStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    color: theme.textPrimary,
+    fontSize: 13,
+  }
+
   if (loading) {
     return (
-      <div style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <div style={{ color: theme.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
         Loading dashboard...
       </div>
     )
@@ -65,16 +94,16 @@ function Dashboard() {
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: '#6b7280', fontSize: 13 }}>Last updated: {lastUpdated}</span>
+          <span style={{ color: theme.textSecondary, fontSize: 13 }}>Last updated: {lastUpdated}</span>
           <NotificationBell />
           <button
             onClick={fetchData}
             style={{
               padding: '8px 16px',
-              background: '#1c2540',
-              border: '1px solid #2a3558',
+              background: theme.btnBg,
+              border: `1px solid ${theme.btnBorder}`,
               borderRadius: 6,
-              color: '#c9d1d9',
+              color: theme.textPrimary,
               fontSize: 13,
               cursor: 'pointer',
             }}
@@ -153,103 +182,87 @@ function Dashboard() {
 
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Top 5 Attacker IPs
-          </h3>
+        <div style={cardStyle}>
+          <h3 style={h3Style}>Top 5 Attacker IPs</h3>
           <TopAttackersChart data={stats?.top_ips?.slice(0, 5) ?? []} />
         </div>
 
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, gridColumn: 'span 2' }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            General Location of Attacks
-          </h3>
+        <div style={{ ...cardStyle, gridColumn: 'span 2' }}>
+          <h3 style={h3Style}>General Location of Attacks</h3>
           <AttackMap attackers={attackers} />
         </div>
       </div>
 
       {/* Top usernames, passwords & country pie chart */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Cowrie Top 10 Usernames
-          </h3>
+        <div style={cardStyle}>
+          <h3 style={h3Style}>Cowrie Top 10 Usernames</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e2a3a' }}>
-                <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Usernames</th>
-                <th style={{ textAlign: 'right', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Count</th>
+              <tr style={{ borderBottom: `1px solid ${theme.cardBorder}` }}>
+                <th style={{ ...thStyle, textAlign: 'left' }}>Usernames</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Count</th>
               </tr>
             </thead>
             <tbody>
               {(stats?.top_usernames ?? []).map((entry, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #1e2a3a' }}>
-                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13 }}>{entry.username_attempt}</td>
-                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13, textAlign: 'right' }}>{entry.count}</td>
+                <tr key={i} style={{ borderBottom: `1px solid ${theme.cardBorder}` }}>
+                  <td style={tdStyle}>{entry.username_attempt}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{entry.count}</td>
                 </tr>
               ))}
               {(stats?.top_usernames ?? []).length === 0 && (
-                <tr><td colSpan={2} style={{ padding: '16px 12px', color: '#6b7280', fontSize: 13, textAlign: 'center' }}>No data yet.</td></tr>
+                <tr><td colSpan={2} style={{ padding: '16px 12px', color: theme.textSecondary, fontSize: 13, textAlign: 'center' }}>No data yet.</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Cowrie Top 10 Passwords
-          </h3>
+        <div style={cardStyle}>
+          <h3 style={h3Style}>Cowrie Top 10 Passwords</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1e2a3a' }}>
-                <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Top 10 Passwords</th>
-                <th style={{ textAlign: 'right', padding: '8px 12px', color: '#9ca3af', fontSize: 13, fontWeight: 600 }}>Count</th>
+              <tr style={{ borderBottom: `1px solid ${theme.cardBorder}` }}>
+                <th style={{ ...thStyle, textAlign: 'left' }}>Top 10 Passwords</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Count</th>
               </tr>
             </thead>
             <tbody>
               {(stats?.top_passwords ?? []).map((entry, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #1e2a3a' }}>
-                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13 }}>{entry.password_attempt}</td>
-                  <td style={{ padding: '8px 12px', color: '#c9d1d9', fontSize: 13, textAlign: 'right' }}>{entry.count}</td>
+                <tr key={i} style={{ borderBottom: `1px solid ${theme.cardBorder}` }}>
+                  <td style={tdStyle}>{entry.password_attempt}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{entry.count}</td>
                 </tr>
               ))}
               {(stats?.top_passwords ?? []).length === 0 && (
-                <tr><td colSpan={2} style={{ padding: '16px 12px', color: '#6b7280', fontSize: 13, textAlign: 'center' }}>No data yet.</td></tr>
+                <tr><td colSpan={2} style={{ padding: '16px 12px', color: theme.textSecondary, fontSize: 13, textAlign: 'center' }}>No data yet.</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Countries
-          </h3>
+        <div style={cardStyle}>
+          <h3 style={h3Style}>Countries</h3>
           <CountryPieChart attackers={attackers} />
         </div>
       </div>
 
       {/* Protocol breakdown & events histogram */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Attack Protocols
-          </h3>
+        <div style={cardStyle}>
+          <h3 style={h3Style}>Attack Protocols</h3>
           <ProtocolChart data={stats?.protocol_counts ?? []} />
         </div>
 
-        <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, gridColumn: 'span 2' }}>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Honeypot Events Histogram
-          </h3>
+        <div style={{ ...cardStyle, gridColumn: 'span 2' }}>
+          <h3 style={h3Style}>Honeypot Events Histogram</h3>
           <EventsHistogram data={stats?.hourly_histogram ?? []} />
         </div>
       </div>
 
       {/* Live feed - raw Cowrie logs */}
-      <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-          Live Feed for Logs
-        </h3>
+      <div style={cardStyle}>
+        <h3 style={h3Style}>Live Feed for Logs</h3>
         <LiveFeed />
       </div>
     </div>

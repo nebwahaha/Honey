@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTheme } from '../theme'
 
 interface PopupRow {
   primary: string
@@ -13,6 +14,7 @@ interface Props {
 }
 
 function StatCardPopup({ icon, label, value, fetchRows }: Props) {
+  const { theme } = useTheme()
   const [hovered, setHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [rows, setRows] = useState<PopupRow[]>([])
@@ -59,8 +61,8 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
-          background: hovered ? '#1c2540' : '#151a28',
-          border: `1px solid ${hovered ? '#3a4a6a' : '#1e2a3a'}`,
+          background: hovered ? theme.cardHoverBg : theme.cardBg,
+          border: `2px solid ${hovered ? theme.cardHoverBorder : theme.cardBorder}`,
           borderRadius: 10,
           padding: '20px 24px',
           flex: 1,
@@ -72,15 +74,15 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
         }}
       >
         <div style={{
-          width: 44, height: 44, borderRadius: 8, background: '#1c2540',
+          width: 44, height: 44, borderRadius: 8, background: theme.iconAccentBg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#7b8cde', flexShrink: 0,
+          color: theme.iconAccent, flexShrink: 0,
         }}>
           {icon}
         </div>
         <div>
-          <div style={{ color: '#ffffff', fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{value}</div>
-          <div style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }}>{label}</div>
+          <div style={{ color: theme.heading, fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{value}</div>
+          <div style={{ color: theme.textSecondary, fontSize: 13, marginTop: 2 }}>{label}</div>
         </div>
       </div>
 
@@ -91,7 +93,7 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.6)',
+            background: theme.modalOverlay,
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
@@ -101,26 +103,26 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#151a28',
-              border: '1px solid #2a3558',
+              background: theme.cardBg,
+              border: `2px solid ${theme.tooltipBorder}`,
               borderRadius: 12,
               width: 420,
               maxHeight: '70vh',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+              boxShadow: `0 16px 48px ${theme.modalOverlay}`,
             }}
           >
             {/* Header */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 20px', borderBottom: '1px solid #1e2a3a',
+              padding: '16px 20px', borderBottom: `1px solid ${theme.cardBorder}`,
             }}>
-              <span style={{ color: '#ffffff', fontSize: 15, fontWeight: 600 }}>{label}</span>
+              <span style={{ color: theme.heading, fontSize: 15, fontWeight: 600 }}>{label}</span>
               <button
                 onClick={handleClose}
                 style={{
-                  background: 'none', border: 'none', color: '#6b7280',
+                  background: 'none', border: 'none', color: theme.textSecondary,
                   fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px',
                 }}
               >
@@ -131,23 +133,23 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
             {/* List */}
             <div style={{ overflowY: 'auto', flex: 1 }}>
               {rows.length === 0 && !loading && (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: 24, textAlign: 'center' }}>
+                <div style={{ color: theme.textSecondary, fontSize: 13, padding: 24, textAlign: 'center' }}>
                   No data.
                 </div>
               )}
               {rows.map((r, i) => (
                 <div key={i} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 20px', borderBottom: '1px solid #1e2a3a',
+                  padding: '10px 20px', borderBottom: `1px solid ${theme.cardBorder}`,
                 }}>
-                  <span style={{ color: '#c9d1d9', fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>{r.primary}</span>
+                  <span style={{ color: theme.textPrimary, fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>{r.primary}</span>
                   {r.secondary && (
-                    <span style={{ color: '#7b8cde', fontSize: 12, fontWeight: 600 }}>{r.secondary}</span>
+                    <span style={{ color: theme.iconAccent, fontSize: 12, fontWeight: 600 }}>{r.secondary}</span>
                   )}
                 </div>
               ))}
               {loading && (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: 16, textAlign: 'center' }}>
+                <div style={{ color: theme.textSecondary, fontSize: 13, padding: 16, textAlign: 'center' }}>
                   Loading...
                 </div>
               )}
@@ -155,13 +157,13 @@ function StatCardPopup({ icon, label, value, fetchRows }: Props) {
 
             {/* Footer */}
             {hasMore && !loading && (
-              <div style={{ padding: '12px 20px', borderTop: '1px solid #1e2a3a' }}>
+              <div style={{ padding: '12px 20px', borderTop: `1px solid ${theme.cardBorder}` }}>
                 <button
                   onClick={() => load(page + 1)}
                   style={{
-                    width: '100%', padding: '8px', background: '#1c2540',
-                    border: '1px solid #2a3558', borderRadius: 6,
-                    color: '#9ca3af', fontSize: 13, cursor: 'pointer',
+                    width: '100%', padding: '8px', background: theme.btnBg,
+                    border: `1px solid ${theme.btnBorder}`, borderRadius: 6,
+                    color: theme.btnText, fontSize: 13, cursor: 'pointer',
                   }}
                 >
                   Show more

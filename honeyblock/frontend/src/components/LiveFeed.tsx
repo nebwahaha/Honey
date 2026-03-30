@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTheme, type Theme } from '../theme'
 
 interface CowrieLog {
   eventid?: string
@@ -16,7 +17,6 @@ interface CowrieLog {
   [key: string]: unknown
 }
 
-// Format ISO timestamp to readable: [1/15/2024, 12:15:15 AM]
 function formatTimestamp(ts: string): string {
   try {
     const d = new Date(ts)
@@ -28,7 +28,6 @@ function formatTimestamp(ts: string): string {
   }
 }
 
-// Determine protocol label from event
 function getProtocol(entry: CowrieLog): string {
   if (entry.protocol) return entry.protocol.toUpperCase()
   const port = entry.dst_port
@@ -36,8 +35,7 @@ function getProtocol(entry: CowrieLog): string {
   return 'SSH'
 }
 
-// Build the full formatted log line
-function formatEntry(entry: CowrieLog): {
+function formatEntry(entry: CowrieLog, theme: Theme): {
   timestamp: string
   ipPort: string
   protocol: string
@@ -53,49 +51,48 @@ function formatEntry(entry: CowrieLog): {
   const country = (entry as Record<string, unknown>).country as string | undefined
 
   let action = ''
-  let actionColor = '#c9d1d9'
+  let actionColor = theme.textPrimary
   let details = ''
 
   if (eventid.includes('session.connect')) {
     action = `New connection: ${ipPort}`
-    actionColor = '#58a6ff'
+    actionColor = theme.blueLink
   } else if (eventid.includes('login.success')) {
     const user = entry.username ?? ''
     const pass = entry.password ?? ''
     action = 'login attempt'
-    actionColor = '#3fb950'
+    actionColor = theme.success
     details = `[${user}/${pass}] succeeded [${user}/${pass}]`
   } else if (eventid.includes('login.failed')) {
     const user = entry.username ?? ''
     const pass = entry.password ?? ''
     action = 'login attempt'
-    actionColor = '#f85149'
+    actionColor = theme.error
     details = `[${user}/${pass}] failed [${user}/${pass}]`
   } else if (eventid.includes('command.input') || eventid.includes('command.failed')) {
     action = 'CMD:'
-    actionColor = '#f5a623'
+    actionColor = theme.orange
     details = entry.input ?? '(empty)'
   } else if (eventid.includes('honeyblock.ip.blocked')) {
     action = 'BLOCKED'
-    actionColor = '#f85149'
+    actionColor = theme.error
     details = entry.message ?? 'Automatically blocked by system'
   } else if (eventid.includes('session.closed')) {
     action = 'connection lost'
-    actionColor = '#8b949e'
+    actionColor = theme.sessionClosed
   } else if (eventid.includes('direct-tcpip')) {
     action = 'TCP tunnel request'
-    actionColor = '#d2a8ff'
+    actionColor = theme.tcpTunnel
     details = entry.message ?? ''
   } else if (eventid.includes('download')) {
     action = 'file download'
-    actionColor = '#ff7b72'
+    actionColor = theme.fileDownload
     details = entry.message ?? String((entry as Record<string, unknown>).url ?? '')
   } else {
     action = eventid.replace('cowrie.', '')
     details = entry.message ?? ''
   }
 
-  // Append country if available
   const countryStr = country ? ` (${country})` : ''
 
   return {
@@ -109,6 +106,7 @@ function formatEntry(entry: CowrieLog): {
 }
 
 function LiveFeed() {
+  const { theme } = useTheme()
   const [logs, setLogs] = useState<CowrieLog[]>([])
 
   const fetchLogs = async () => {
@@ -131,7 +129,7 @@ function LiveFeed() {
 
   if (logs.length === 0) {
     return (
-      <div style={{ color: '#6b7280', textAlign: 'center', padding: 30 }}>
+      <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 30 }}>
         No Cowrie logs yet. Start Cowrie and wait for connections.
       </div>
     )
@@ -140,8 +138,8 @@ function LiveFeed() {
   return (
     <div
       style={{
-        background: '#0d1117',
-        border: '1px solid #1e2a3a',
+        background: theme.feedBg,
+        border: `2px solid ${theme.cardBorder}`,
         borderRadius: 6,
         maxHeight: 400,
         overflowY: 'auto',
@@ -150,45 +148,36 @@ function LiveFeed() {
       }}
     >
       {logs.map((entry, i) => {
-        const f = formatEntry(entry)
+        const f = formatEntry(entry, theme)
 
         return (
           <div
             key={i}
             style={{
               padding: '10px 16px',
-              borderBottom: '1px solid #1a2030',
+              borderBottom: `1px solid ${theme.feedBorder}`,
               display: 'flex',
               alignItems: 'baseline',
               gap: 0,
               flexWrap: 'wrap',
             }}
           >
-            {/* Timestamp */}
-            <span style={{ color: '#6b7280', marginRight: 8 }}>
+            <span style={{ color: theme.textSecondary, marginRight: 8 }}>
               {f.timestamp}
             </span>
-
-            {/* IP:Port */}
-            <span style={{ color: '#c9d1d9', marginRight: 8 }}>
+            <span style={{ color: theme.textPrimary, marginRight: 8 }}>
               {f.ipPort}
             </span>
-
-            {/* Arrow + Protocol */}
-            <span style={{ color: '#484f58', marginRight: 8 }}>&rarr;</span>
-            <span style={{ color: '#7b8cde', fontWeight: 700, marginRight: 8 }}>
+            <span style={{ color: theme.arrow, marginRight: 8 }}>&rarr;</span>
+            <span style={{ color: theme.iconAccent, fontWeight: 700, marginRight: 8 }}>
               {f.protocol}
             </span>
-
-            {/* Action */}
             <span style={{ color: f.actionColor, marginRight: 6 }}>
               {f.action}
             </span>
-
-            {/* Details with bold credentials */}
             {f.details && (
-              <span style={{ color: '#c9d1d9' }}>
-                {renderDetails(f.details, f.actionColor)}
+              <span style={{ color: theme.textPrimary }}>
+                {renderDetails(f.details, f.actionColor, theme)}
               </span>
             )}
           </div>
@@ -198,8 +187,7 @@ function LiveFeed() {
   )
 }
 
-// Render details with bold brackets for credentials like [user/pass]
-function renderDetails(details: string, color: string): React.ReactNode {
+function renderDetails(details: string, color: string, theme: Theme): React.ReactNode {
   const parts = details.split(/(\[[^\]]*\])/)
   return parts.map((part, i) => {
     if (part.startsWith('[') && part.endsWith(']') && !part.startsWith('(')) {
@@ -207,10 +195,9 @@ function renderDetails(details: string, color: string): React.ReactNode {
         <span key={i} style={{ fontWeight: 700, color }}>{part}</span>
       )
     }
-    // Color country in parentheses
     if (part.match(/^\s*\(.*\)$/)) {
       return (
-        <span key={i} style={{ color: '#6b7280' }}>{part}</span>
+        <span key={i} style={{ color: theme.textSecondary }}>{part}</span>
       )
     }
     return <span key={i}>{part}</span>

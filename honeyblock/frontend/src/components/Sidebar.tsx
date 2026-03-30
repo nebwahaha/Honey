@@ -1,18 +1,21 @@
 import { NavLink } from 'react-router-dom'
-
-const linkBase: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  padding: '12px 18px',
-  borderRadius: 8,
-  fontSize: 14,
-  fontWeight: 500,
-  color: '#8b8fa8',
-  transition: 'background 0.15s, color 0.15s',
-}
+import { useTheme } from '../theme'
 
 function Sidebar() {
+  const { theme } = useTheme()
+
+  const linkBase: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '12px 18px',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 500,
+    color: theme.navText,
+    transition: 'background 0.15s, color 0.15s',
+  }
+
   return (
     <aside
       style={{
@@ -20,8 +23,8 @@ function Sidebar() {
         height: '100vh',
         position: 'sticky',
         top: 0,
-        background: '#111521',
-        borderRight: '1px solid #1e2433',
+        background: theme.sidebarBg,
+        borderRight: `1px solid ${theme.sidebarBorder}`,
         display: 'flex',
         flexDirection: 'column',
         padding: '24px 12px',
@@ -29,8 +32,8 @@ function Sidebar() {
       }}
     >
       {/* Logo */}
-      <div style={{ padding: '0 6px 28px', borderBottom: '1px solid #1e2433', marginBottom: 20 }}>
-        <div style={{ color: '#7b8cde', fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px' }}>HoneyBlock</div>
+      <div style={{ padding: '0 6px 28px', borderBottom: `1px solid ${theme.sidebarBorder}`, marginBottom: 20 }}>
+        <div style={{ color: theme.brand, fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px' }}>HoneyBlock</div>
       </div>
 
       {/* Nav links */}
@@ -40,8 +43,8 @@ function Sidebar() {
           end
           style={({ isActive }) => ({
             ...linkBase,
-            background: isActive ? '#2a3558' : 'transparent',
-            color: isActive ? '#ffffff' : '#8b8fa8',
+            background: isActive ? theme.navActiveBg : 'transparent',
+            color: isActive ? theme.navActiveText : theme.navText,
           })}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -54,8 +57,8 @@ function Sidebar() {
           to="/blocking"
           style={({ isActive }) => ({
             ...linkBase,
-            background: isActive ? '#2a3558' : 'transparent',
-            color: isActive ? '#ffffff' : '#8b8fa8',
+            background: isActive ? theme.navActiveBg : 'transparent',
+            color: isActive ? theme.navActiveText : theme.navText,
           })}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,8 +71,8 @@ function Sidebar() {
           to="/configurations"
           style={({ isActive }) => ({
             ...linkBase,
-            background: isActive ? '#2a3558' : 'transparent',
-            color: isActive ? '#ffffff' : '#8b8fa8',
+            background: isActive ? theme.navActiveBg : 'transparent',
+            color: isActive ? theme.navActiveText : theme.navText,
           })}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

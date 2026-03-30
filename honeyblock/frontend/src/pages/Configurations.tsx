@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useTheme, themes } from '../theme'
 import NotificationBell from '../components/NotificationBell'
 
 function Configurations() {
+  const { theme, themeName, setThemeName } = useTheme()
   const [cowrieRunning, setCowrieRunning] = useState<boolean | null>(null)
   const [autoStart, setAutoStart] = useState<boolean | null>(null)
   const [autoBlock, setAutoBlock] = useState<boolean | null>(null)
@@ -94,6 +96,22 @@ function Configurations() {
     }
   }
 
+  const cardStyle: React.CSSProperties = {
+    background: theme.cardBg,
+    border: `2px solid ${theme.cardBorder}`,
+    borderRadius: 10,
+    padding: 24,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  }
+
+  const themeLabels: Record<string, string> = {
+    dark: 'Dark',
+    'soft-light': 'Soft Light',
+    forest: 'Forest',
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 24 }}>
@@ -106,8 +124,8 @@ function Configurations() {
             padding: '10px 16px',
             marginBottom: 16,
             borderRadius: 6,
-            background: message.error ? '#2d1b1b' : '#1b2d1b',
-            color: message.error ? '#f85149' : '#3fb950',
+            background: message.error ? theme.messageBgError : theme.messageBgSuccess,
+            color: message.error ? theme.error : theme.success,
             fontSize: 13,
           }}
         >
@@ -117,27 +135,17 @@ function Configurations() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Cowrie toggle */}
-        <div
-          style={{
-            background: '#151a28',
-            border: '1px solid #1e2a3a',
-            borderRadius: 10,
-            padding: 24,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+        <div style={cardStyle}>
           <div>
-            <h3 style={{ color: '#ffffff', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            <h3 style={{ color: theme.heading, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
               Cowrie Honeypot
             </h3>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+            <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0 }}>
               Start or stop the Cowrie SSH/Telnet honeypot service.
             </p>
             <div style={{ marginTop: 8, fontSize: 13 }}>
               Status:{' '}
-              <span style={{ color: cowrieRunning ? '#3fb950' : '#f85149', fontWeight: 600 }}>
+              <span style={{ color: cowrieRunning ? theme.success : theme.error, fontWeight: 600 }}>
                 {cowrieRunning === null ? 'Checking...' : cowrieRunning ? 'Running' : 'Stopped'}
               </span>
             </div>
@@ -153,7 +161,7 @@ function Configurations() {
               fontSize: 14,
               cursor: toggling ? 'wait' : 'pointer',
               color: '#ffffff',
-              background: toggling ? '#555' : cowrieRunning ? '#d32f2f' : '#2e7d32',
+              background: toggling ? theme.toggleDisabledBg : cowrieRunning ? theme.blockBtn : theme.unblockBtn,
               minWidth: 130,
             }}
           >
@@ -162,27 +170,17 @@ function Configurations() {
         </div>
 
         {/* Auto-start toggle */}
-        <div
-          style={{
-            background: '#151a28',
-            border: '1px solid #1e2a3a',
-            borderRadius: 10,
-            padding: 24,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+        <div style={cardStyle}>
           <div>
-            <h3 style={{ color: '#ffffff', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            <h3 style={{ color: theme.heading, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
               Auto-Start on Boot
             </h3>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+            <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0 }}>
               Automatically start all HoneyBlock services when the system boots up.
             </p>
             <div style={{ marginTop: 8, fontSize: 13 }}>
               Status:{' '}
-              <span style={{ color: autoStart ? '#3fb950' : '#6b7280', fontWeight: 600 }}>
+              <span style={{ color: autoStart ? theme.success : theme.textSecondary, fontWeight: 600 }}>
                 {autoStart === null ? 'Checking...' : autoStart ? 'Enabled' : 'Disabled'}
               </span>
             </div>
@@ -192,12 +190,12 @@ function Configurations() {
             disabled={togglingAuto || autoStart === null}
             style={{
               padding: '10px 28px',
-              border: autoStart ? '2px solid #f59e0b' : '2px solid #444',
+              border: `2px solid ${autoStart ? theme.toggleActiveBorder : theme.toggleInactiveBorder}`,
               borderRadius: 8,
               fontWeight: 600,
               fontSize: 14,
               cursor: togglingAuto ? 'wait' : 'pointer',
-              color: autoStart ? '#f59e0b' : '#888',
+              color: autoStart ? theme.toggleActiveText : theme.toggleInactiveText,
               background: 'transparent',
               minWidth: 130,
             }}
@@ -207,28 +205,18 @@ function Configurations() {
         </div>
 
         {/* Auto-block toggle */}
-        <div
-          style={{
-            background: '#151a28',
-            border: '1px solid #1e2a3a',
-            borderRadius: 10,
-            padding: 24,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+        <div style={cardStyle}>
           <div>
-            <h3 style={{ color: '#ffffff', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            <h3 style={{ color: theme.heading, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
               Automatic Blocking
             </h3>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+            <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0 }}>
               Automatically block attackers when their session count exceeds the configured threshold.
               Set the session limit on the Blocking page.
             </p>
             <div style={{ marginTop: 8, fontSize: 13 }}>
               Status:{' '}
-              <span style={{ color: autoBlock ? '#3fb950' : '#6b7280', fontWeight: 600 }}>
+              <span style={{ color: autoBlock ? theme.success : theme.textSecondary, fontWeight: 600 }}>
                 {autoBlock === null ? 'Checking...' : autoBlock ? 'Enabled' : 'Disabled'}
               </span>
             </div>
@@ -238,18 +226,72 @@ function Configurations() {
             disabled={togglingAutoBlock || autoBlock === null}
             style={{
               padding: '10px 28px',
-              border: autoBlock ? '2px solid #f59e0b' : '2px solid #444',
+              border: `2px solid ${autoBlock ? theme.toggleActiveBorder : theme.toggleInactiveBorder}`,
               borderRadius: 8,
               fontWeight: 600,
               fontSize: 14,
               cursor: togglingAutoBlock ? 'wait' : 'pointer',
-              color: autoBlock ? '#f59e0b' : '#888',
+              color: autoBlock ? theme.toggleActiveText : theme.toggleInactiveText,
               background: 'transparent',
               minWidth: 130,
             }}
           >
             {togglingAutoBlock ? 'Please wait...' : autoBlock ? 'Disable' : 'Enable'}
           </button>
+        </div>
+
+        {/* Theme selector */}
+        <div
+          style={{
+            background: theme.cardBg,
+            border: `2px solid ${theme.cardBorder}`,
+            borderRadius: 10,
+            padding: 24,
+          }}
+        >
+          <h3 style={{ color: theme.heading, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            Theme
+          </h3>
+          <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0, marginBottom: 16 }}>
+            Choose a visual theme for the dashboard.
+          </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {Object.keys(themes).map((key) => {
+              const t = themes[key]
+              const isActive = key === themeName
+              return (
+                <button
+                  key={key}
+                  onClick={() => setThemeName(key)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '12px 20px',
+                    borderRadius: 8,
+                    border: `2px solid ${isActive ? theme.brand : theme.cardBorder}`,
+                    background: isActive ? theme.navActiveBg : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {/* Color preview dots */}
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: t.pageBg, border: `1px solid ${theme.cardBorder}` }} />
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: t.cardBg, border: `1px solid ${theme.cardBorder}` }} />
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: t.brand }} />
+                  </div>
+                  <span style={{
+                    color: isActive ? theme.heading : theme.textSecondary,
+                    fontSize: 13,
+                    fontWeight: isActive ? 600 : 400,
+                  }}>
+                    {themeLabels[key] ?? key}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

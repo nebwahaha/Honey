@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import type { Attacker, BlockEntry } from '../types'
+import { useTheme } from '../theme'
 import NotificationBell from '../components/NotificationBell'
 
 function Blocking() {
+  const { theme } = useTheme()
   const [attackers, setAttackers] = useState<Attacker[]>([])
   const [blocklist, setBlocklist] = useState<BlockEntry[]>([])
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
@@ -117,8 +119,8 @@ function Blocking() {
   }
 
   const thStyle: React.CSSProperties = {
-    background: '#111521',
-    color: '#6b7280',
+    background: theme.tableHeaderBg,
+    color: theme.textSecondary,
     textAlign: 'left',
     padding: 12,
     fontSize: 13,
@@ -128,6 +130,14 @@ function Blocking() {
   const tdStyle: React.CSSProperties = {
     padding: 12,
     fontSize: 13,
+    color: theme.textPrimary,
+  }
+
+  const cardStyle: React.CSSProperties = {
+    background: theme.cardBg,
+    border: `2px solid ${theme.cardBorder}`,
+    borderRadius: 10,
+    padding: 20,
   }
 
   return (
@@ -140,7 +150,7 @@ function Blocking() {
       {message && message.error && (
         <div style={{
           padding: '10px 16px', marginBottom: 16, borderRadius: 6,
-          background: '#2d1b1b', color: '#f85149', fontSize: 13,
+          background: theme.messageBgError, color: theme.error, fontSize: 13,
         }}>
           {message.text}
         </div>
@@ -149,10 +159,7 @@ function Blocking() {
       {/* Auto-block session limit */}
       <div
         style={{
-          background: '#151a28',
-          border: '1px solid #1e2a3a',
-          borderRadius: 10,
-          padding: 20,
+          ...cardStyle,
           marginBottom: 24,
           display: 'flex',
           justifyContent: 'space-between',
@@ -160,17 +167,17 @@ function Blocking() {
         }}
       >
         <div>
-          <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+          <h3 style={{ color: theme.heading, fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
             Automatic Blocking — Session Limit
           </h3>
-          <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+          <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0 }}>
             Attackers are automatically blocked after reaching this number of sessions.
             {' '}
-            <span style={{ color: autoBlockEnabled ? '#3fb950' : '#f85149', fontWeight: 600 }}>
+            <span style={{ color: autoBlockEnabled ? theme.success : theme.error, fontWeight: 600 }}>
               {autoBlockEnabled ? 'Auto-blocking is ON' : 'Auto-blocking is OFF'}
             </span>
             {!autoBlockEnabled && (
-              <span style={{ color: '#6b7280' }}> — enable it in Configurations.</span>
+              <span style={{ color: theme.textSecondary }}> — enable it in Configurations.</span>
             )}
           </p>
         </div>
@@ -178,21 +185,21 @@ function Blocking() {
           {/* Stepper */}
           <div style={{
             display: 'flex', alignItems: 'center',
-            background: '#111521', border: '1px solid #2a3558',
+            background: theme.tableHeaderBg, border: `1px solid ${theme.tooltipBorder}`,
             borderRadius: 8, overflow: 'hidden',
           }}>
             <button
               onClick={() => setThresholdInput(v => String(Math.max(1, parseInt(v, 10) - 1)))}
               style={{
                 width: 36, height: 36, background: 'transparent',
-                border: 'none', color: '#9ca3af', fontSize: 18,
+                border: 'none', color: theme.textTertiary, fontSize: 18,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >−</button>
             <span style={{
               minWidth: 40, textAlign: 'center',
-              color: '#ffffff', fontSize: 15, fontWeight: 700,
-              borderLeft: '1px solid #2a3558', borderRight: '1px solid #2a3558',
+              color: theme.heading, fontSize: 15, fontWeight: 700,
+              borderLeft: `1px solid ${theme.tooltipBorder}`, borderRight: `1px solid ${theme.tooltipBorder}`,
               padding: '0 8px', lineHeight: '36px',
             }}>
               {thresholdInput}
@@ -201,7 +208,7 @@ function Blocking() {
               onClick={() => setThresholdInput(v => String(parseInt(v, 10) + 1))}
               style={{
                 width: 36, height: 36, background: 'transparent',
-                border: 'none', color: '#9ca3af', fontSize: 18,
+                border: 'none', color: theme.textTertiary, fontSize: 18,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >+</button>
@@ -217,7 +224,7 @@ function Blocking() {
               fontSize: 13,
               cursor: savingThreshold || parseInt(thresholdInput, 10) === threshold ? 'default' : 'pointer',
               color: '#ffffff',
-              background: savingThreshold || parseInt(thresholdInput, 10) === threshold ? '#1e2a3a' : '#2563eb',
+              background: savingThreshold || parseInt(thresholdInput, 10) === threshold ? theme.cardBorder : theme.bluePrimary,
               transition: 'background 0.15s',
             }}
           >
@@ -227,17 +234,17 @@ function Blocking() {
       </div>
 
       {/* Attacker list with block/unblock buttons */}
-      <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20, marginBottom: 24 }}>
-        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
+      <div style={{ ...cardStyle, marginBottom: 24 }}>
+        <h3 style={{ color: theme.heading, fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
           Detected Attackers
         </h3>
 
         {attackers.length === 0 ? (
-          <div style={{ color: '#6b7280', textAlign: 'center', padding: 30 }}>
+          <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 30 }}>
             No attackers detected yet.
           </div>
         ) : (
-          <div style={{ overflowY: 'auto', maxHeight: 400, borderRadius: 6, border: '1px solid #1e2a3a' }}>
+          <div style={{ overflowY: 'auto', maxHeight: 400, borderRadius: 6, border: `1px solid ${theme.cardBorder}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr>
@@ -257,8 +264,8 @@ function Blocking() {
                     <tr
                       key={a.ip}
                       style={{
-                        background: i % 2 === 0 ? '#131824' : '#111521',
-                        borderBottom: '1px solid #1e2a3a',
+                        background: i % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd,
+                        borderBottom: `1px solid ${theme.cardBorder}`,
                       }}
                     >
                       <td style={tdStyle}>{a.ip}</td>
@@ -268,13 +275,13 @@ function Blocking() {
                       {autoBlockEnabled && (
                         <td style={{
                           ...tdStyle,
-                          color: isBlocked ? '#6b7280' : a.chances_left != null && a.chances_left <= 3 ? '#f85149' : '#f59e0b',
+                          color: isBlocked ? theme.textSecondary : a.chances_left != null && a.chances_left <= 3 ? theme.error : theme.amber,
                           fontWeight: 600,
                         }}>
                           {isBlocked ? '--' : a.chances_left ?? '--'}
                         </td>
                       )}
-                      <td style={{ ...tdStyle, color: isBlocked ? '#f85149' : '#3fb950' }}>
+                      <td style={{ ...tdStyle, color: isBlocked ? theme.error : theme.success }}>
                         {isBlocked ? 'Blocked' : 'Not blocked'}
                       </td>
                       <td style={tdStyle}>
@@ -289,7 +296,7 @@ function Blocking() {
                             fontSize: 12,
                             cursor: actionInProgress === a.ip ? 'wait' : 'pointer',
                             color: '#ffffff',
-                            background: isBlocked ? '#2e7d32' : '#d32f2f',
+                            background: isBlocked ? theme.unblockBtn : theme.blockBtn,
                           }}
                         >
                           {actionInProgress === a.ip ? '...' : isBlocked ? 'Unblock' : 'Block'}
@@ -305,17 +312,17 @@ function Blocking() {
       </div>
 
       {/* Blocklist history */}
-      <div style={{ background: '#151a28', border: '1px solid #1e2a3a', borderRadius: 10, padding: 20 }}>
-        <h3 style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
+      <div style={cardStyle}>
+        <h3 style={{ color: theme.heading, fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
           Block History
         </h3>
 
         {blocklist.length === 0 ? (
-          <div style={{ color: '#6b7280', textAlign: 'center', padding: 30 }}>
+          <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 30 }}>
             No blocks recorded yet.
           </div>
         ) : (
-          <div style={{ overflowY: 'auto', maxHeight: 400, borderRadius: 6, border: '1px solid #1e2a3a' }}>
+          <div style={{ overflowY: 'auto', maxHeight: 400, borderRadius: 6, border: `1px solid ${theme.cardBorder}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr>
@@ -332,8 +339,8 @@ function Blocking() {
                   <tr
                     key={b.block_id}
                     style={{
-                      background: i % 2 === 0 ? '#131824' : '#111521',
-                      borderBottom: '1px solid #1e2a3a',
+                      background: i % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd,
+                      borderBottom: `1px solid ${theme.cardBorder}`,
                     }}
                   >
                     <td style={tdStyle}>{b.block_id}</td>
@@ -341,7 +348,7 @@ function Blocking() {
                     <td style={tdStyle}>{b.block_date}</td>
                     <td style={tdStyle}>{b.blocked_by ?? '--'}</td>
                     <td style={tdStyle}>{b.expiration_date ?? 'Never'}</td>
-                    <td style={{ ...tdStyle, color: b.is_active === 'Block_active' ? '#f85149' : '#6b7280' }}>
+                    <td style={{ ...tdStyle, color: b.is_active === 'Block_active' ? theme.error : theme.textSecondary }}>
                       {b.is_active === 'Block_active' ? 'Active' : 'Inactive'}
                     </td>
                   </tr>

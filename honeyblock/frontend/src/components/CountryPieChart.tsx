@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Attacker } from '../types'
+import { useTheme } from '../theme'
 
 const COLORS = [
   '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
@@ -12,6 +13,8 @@ interface Props {
 }
 
 function CountryPieChart({ attackers }: Props) {
+  const { theme } = useTheme()
+
   const countryCounts = attackers
     .filter(a => a.country)
     .reduce<Record<string, number>>((acc, a) => {
@@ -25,7 +28,7 @@ function CountryPieChart({ attackers }: Props) {
 
   if (data.length === 0) {
     return (
-      <div style={{ color: '#6b7280', textAlign: 'center', padding: 40 }}>
+      <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 40 }}>
         No country data yet.
       </div>
     )
@@ -45,7 +48,7 @@ function CountryPieChart({ attackers }: Props) {
             cy="50%"
             outerRadius={100}
             innerRadius={60}
-            stroke="#151a28"
+            stroke={theme.pieStroke}
             strokeWidth={1}
             paddingAngle={1}
           >
@@ -55,12 +58,12 @@ function CountryPieChart({ attackers }: Props) {
           </Pie>
           <Tooltip
             contentStyle={{
-              background: '#1c2540',
-              border: '1px solid #2a3558',
+              background: theme.tooltipBg,
+              border: `1px solid ${theme.tooltipBorder}`,
               borderRadius: 6,
-              color: '#c9d1d9',
+              color: theme.textPrimary,
               fontSize: 12,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              boxShadow: `0 4px 12px ${theme.shadow}`,
             }}
             formatter={(value, name) => [`${value} (${((Number(value) / total) * 100).toFixed(1)}%)`, name]}
           />
@@ -72,7 +75,7 @@ function CountryPieChart({ attackers }: Props) {
         {data.map((d, i) => (
           <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }} />
-            <span style={{ color: '#c9d1d9', fontSize: 11 }}>
+            <span style={{ color: theme.textPrimary, fontSize: 11 }}>
               {d.name} ({d.value})
             </span>
           </div>
