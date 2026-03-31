@@ -13,6 +13,8 @@ function Blocking() {
   const [threshold, setThreshold] = useState(20)
   const [thresholdInput, setThresholdInput] = useState('20')
   const [savingThreshold, setSavingThreshold] = useState(false)
+  const [blockDuration, setBlockDuration] = useState('never')
+  const [savingDuration, setSavingDuration] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -31,6 +33,7 @@ function Blocking() {
         setAutoBlockEnabled(data.enabled)
         setThreshold(data.threshold)
         setThresholdInput(String(data.threshold))
+        setBlockDuration(data.block_duration ?? 'never')
       }
     } catch {
       // retry on next interval
@@ -115,6 +118,30 @@ function Blocking() {
       setMessage({ text: 'Network error', error: true })
     } finally {
       setSavingThreshold(false)
+    }
+  }
+
+  const saveDuration = async (value: string) => {
+    setSavingDuration(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/autoblock/duration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ block_duration: value }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setBlockDuration(data.block_duration)
+        const labels: Record<string, string> = { never: 'Never', '1d': '1 Day', '1w': '1 Week', '1m': '1 Month' }
+        setMessage({ text: `Block expiration set to ${labels[data.block_duration] ?? data.block_duration}`, error: false })
+      } else {
+        setMessage({ text: data.message ?? 'Failed to update expiration', error: true })
+      }
+    } catch {
+      setMessage({ text: 'Network error', error: true })
+    } finally {
+      setSavingDuration(false)
     }
   }
 
@@ -231,6 +258,47 @@ function Blocking() {
             {savingThreshold ? 'Saving...' : 'Save'}
           </button>
         </div>
+      </div>
+
+      {/* Block expiration duration */}
+      <div
+        style={{
+          ...cardStyle,
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <h3 style={{ color: theme.heading, fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+            Block Expiration
+          </h3>
+          <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0 }}>
+            How long blocked IPs stay blocked before the block expires.
+          </p>
+        </div>
+        <select
+          value={blockDuration}
+          disabled={savingDuration}
+          onChange={(e) => saveDuration(e.target.value)}
+          style={{
+            padding: '8px 14px',
+            borderRadius: 8,
+            border: `1px solid ${theme.tooltipBorder}`,
+            background: theme.tableHeaderBg,
+            color: theme.heading,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: savingDuration ? 'wait' : 'pointer',
+            outline: 'none',
+          }}
+        >
+          <option value="never">Never</option>
+          <option value="1d">1 Day</option>
+          <option value="1w">1 Week</option>
+          <option value="1m">1 Month</option>
+        </select>
       </div>
 
       {/* Attacker list with block/unblock buttons */}

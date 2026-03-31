@@ -96,7 +96,9 @@ def _read_position() -> int:
 
 def _write_position(pos: int):
     os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-    Path(STATE_FILE).write_text(str(pos))
+    tmp = STATE_FILE + ".tmp"
+    Path(tmp).write_text(str(pos))
+    os.replace(tmp, STATE_FILE)  # atomic on POSIX
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +187,8 @@ def _parse_line(raw: str):
                 if since >= cfg["threshold"]:
                     fw = firewall.block_ip(ip)
                     if fw["success"]:
-                        db.add_block(ip, blocked_by="Auto")
+                        expiration = db.compute_expiration(cfg.get("block_duration", "never"))
+                        db.add_block(ip, blocked_by="Auto", expiration_date=expiration)
                         logger.info("Auto-blocked %s (sessions since baseline: %d, threshold: %d)", ip, since, cfg["threshold"])
                         _write_block_log(ip, since, cfg["threshold"])
                     else:
@@ -228,11 +231,17 @@ def process_new_lines():
 # Watchdog handler
 # ---------------------------------------------------------------------------
 class CowrieLogHandler(FileSystemEventHandler):
-    def on_modified(self, event):
+    def _handle(self, event):
         if event.is_directory:
             return
         if os.path.abspath(event.src_path) == os.path.abspath(COWRIE_LOG):
             process_new_lines()
+
+    def on_modified(self, event):
+        self._handle(event)
+
+    def on_created(self, event):
+        self._handle(event)
 
 
 # ---------------------------------------------------------------------------
@@ -240,11 +249,25 @@ class CowrieLogHandler(FileSystemEventHandler):
 # ---------------------------------------------------------------------------
 _running = True
 
+POLL_INTERVAL = 5  # seconds between fallback polls
+
 
 def _shutdown(signum, _frame):
     global _running
     logger.info("Received signal %d, shutting down…", signum)
     _running = False
+
+
+def _wait_for_directory(path: str):
+    """Block until the watch directory exists, logging every 30s."""
+    warned = False
+    while _running and not os.path.isdir(path):
+        if not warned:
+            logger.warning("Watch directory does not exist yet: %s — waiting for Cowrie to start", path)
+            warned = True
+        time.sleep(2)
+    if warned and os.path.isdir(path):
+        logger.info("Watch directory appeared: %s", path)
 
 
 def main():
@@ -256,13 +279,15 @@ def main():
     db.init_db()
     logger.info("Database initialized")
 
+    watch_dir = os.path.dirname(COWRIE_LOG)
+
+    # Wait for Cowrie to create its log directory instead of dying
+    _wait_for_directory(watch_dir)
+    if not _running:
+        return
+
     # Catch up on any lines written while we were down
     process_new_lines()
-
-    watch_dir = os.path.dirname(COWRIE_LOG)
-    if not os.path.isdir(watch_dir):
-        logger.error("Watch directory does not exist: %s", watch_dir)
-        sys.exit(1)
 
     observer = Observer()
     observer.schedule(CowrieLogHandler(), path=watch_dir, recursive=False)
@@ -271,10 +296,25 @@ def main():
 
     try:
         while _running:
-            time.sleep(1)
+            time.sleep(POLL_INTERVAL)
+
+            # Periodic poll as fallback in case watchdog missed an event
+            process_new_lines()
+
+            # Restart observer if its thread died
+            if not observer.is_alive():
+                logger.warning("Observer thread died — restarting")
+                try:
+                    observer = Observer()
+                    observer.schedule(CowrieLogHandler(), path=watch_dir, recursive=False)
+                    observer.start()
+                    logger.info("Observer restarted successfully")
+                except Exception:
+                    logger.exception("Failed to restart observer, will rely on polling")
     finally:
-        observer.stop()
-        observer.join()
+        if observer.is_alive():
+            observer.stop()
+            observer.join()
         logger.info("Watcher stopped")
 
 

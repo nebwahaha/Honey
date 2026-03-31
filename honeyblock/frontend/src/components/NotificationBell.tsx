@@ -75,6 +75,15 @@ function SectionHeader({
   )
 }
 
+function sendDesktopNotification(title: string, body: string) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+  try {
+    new Notification(title, { body, icon: '/favicon.ico' })
+  } catch {
+    // Silent fail — some environments block the constructor
+  }
+}
+
 function NotificationBell() {
   const { theme } = useTheme()
   const [blocklist, setBlocklist] = useState<BlockEntry[]>([])
@@ -91,6 +100,17 @@ function NotificationBell() {
   const [expanded, setExpanded] = useState<Section | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
+  // Track known IPs/blocks so we only notify on genuinely new ones
+  const knownActiveIPs = useRef<Set<string> | null>(null)
+  const knownBlockIDs = useRef<Set<number> | null>(null)
+
+  // Request desktop notification permission on mount
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
   const fetchData = async () => {
     try {
       const [blockedRes, activeRes] = await Promise.all([
@@ -99,11 +119,39 @@ function NotificationBell() {
       ])
       if (blockedRes.ok) {
         const data = await blockedRes.json()
-        setBlocklist(data.data ?? [])
+        const blocks: BlockEntry[] = data.data ?? []
+        setBlocklist(blocks)
+
+        // Desktop notifications for new blocks
+        const currentBlockIDs = new Set(blocks.filter(b => b.is_active === 'Block_active').map(b => b.block_id))
+        if (knownBlockIDs.current !== null) {
+          const newBlocks = blocks.filter(b => b.is_active === 'Block_active' && !knownBlockIDs.current!.has(b.block_id))
+          for (const b of newBlocks) {
+            sendDesktopNotification(
+              'HoneyBlock — IP Blocked',
+              `${b.ip} was blocked${b.blocked_by ? ` (${b.blocked_by})` : ''}`
+            )
+          }
+        }
+        knownBlockIDs.current = currentBlockIDs
       }
       if (activeRes.ok) {
         const data = await activeRes.json()
-        setActiveSessions(data ?? [])
+        const sessions: ActiveSession[] = data ?? []
+        setActiveSessions(sessions)
+
+        // Desktop notifications for new connections
+        const currentIPs = new Set(sessions.map(s => s.ip))
+        if (knownActiveIPs.current !== null) {
+          const newIPs = sessions.filter(s => !knownActiveIPs.current!.has(s.ip))
+          for (const s of newIPs) {
+            sendDesktopNotification(
+              'HoneyBlock — New Connection',
+              `${s.ip} connected to the honeypot`
+            )
+          }
+        }
+        knownActiveIPs.current = currentIPs
       }
     } catch {
       // retry on next interval

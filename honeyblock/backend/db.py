@@ -242,7 +242,7 @@ import json as _json
 
 AUTOBLOCK_CONFIG = os.path.join(os.path.dirname(DB_PATH), "autoblock.json")
 
-_AUTOBLOCK_DEFAULTS: dict = {"enabled": False, "threshold": 20, "baselines": {}}
+_AUTOBLOCK_DEFAULTS: dict = {"enabled": False, "threshold": 20, "block_duration": "never", "baselines": {}}
 
 
 def _read_autoblock_file() -> dict:
@@ -259,25 +259,48 @@ def _write_autoblock_file(data: dict):
         _json.dump(data, f)
 
 
+VALID_DURATIONS = {"never", "1d", "1w", "1m"}
+
+
 def get_autoblock_config() -> dict:
     data = _read_autoblock_file()
     return {
         "enabled": bool(data.get("enabled", False)),
         "threshold": int(data.get("threshold", 20)),
+        "block_duration": data.get("block_duration", "never"),
     }
 
 
-def set_autoblock_config(*, enabled: bool | None = None, threshold: int | None = None) -> dict:
+def set_autoblock_config(*, enabled: bool | None = None, threshold: int | None = None, block_duration: str | None = None) -> dict:
     data = _read_autoblock_file()
     if enabled is not None:
         data["enabled"] = enabled
     if threshold is not None:
         data["threshold"] = max(1, threshold)
+    if block_duration is not None and block_duration in VALID_DURATIONS:
+        data["block_duration"] = block_duration
     _write_autoblock_file(data)
     return {
         "enabled": data["enabled"],
         "threshold": data["threshold"],
+        "block_duration": data.get("block_duration", "never"),
     }
+
+
+def compute_expiration(block_duration: str) -> str | None:
+    """Return an ISO expiration timestamp for the given duration, or None for 'never'."""
+    if block_duration == "never":
+        return None
+    now = datetime.now(timezone.utc)
+    if block_duration == "1d":
+        exp = now + timedelta(days=1)
+    elif block_duration == "1w":
+        exp = now + timedelta(weeks=1)
+    elif block_duration == "1m":
+        exp = now + timedelta(days=30)
+    else:
+        return None
+    return exp.isoformat()
 
 
 def get_session_count(ip: str) -> int:

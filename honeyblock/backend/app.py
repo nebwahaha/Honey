@@ -109,7 +109,9 @@ def block():
     if not fw_result["success"]:
         return jsonify(fw_result), 500
 
-    db_record = db.add_block(ip)
+    cfg = db.get_autoblock_config()
+    expiration = db.compute_expiration(cfg["block_duration"])
+    db_record = db.add_block(ip, blocked_by="Manual", expiration_date=expiration)
     return jsonify({"success": True, "message": fw_result["message"], "blocked": db_record})
 
 
@@ -157,6 +159,18 @@ def autoblock_threshold():
     if threshold < 1:
         return jsonify({"success": False, "message": "Threshold must be at least 1"}), 400
     new_cfg = db.set_autoblock_config(threshold=threshold)
+    return jsonify(new_cfg)
+
+
+@app.route("/api/autoblock/duration", methods=["POST"])
+def autoblock_duration():
+    body = request.get_json(silent=True)
+    if not body or "block_duration" not in body:
+        return jsonify({"success": False, "message": "Missing 'block_duration' in request body"}), 400
+    duration = body["block_duration"]
+    if duration not in db.VALID_DURATIONS:
+        return jsonify({"success": False, "message": f"Invalid duration. Must be one of: {', '.join(sorted(db.VALID_DURATIONS))}"}), 400
+    new_cfg = db.set_autoblock_config(block_duration=duration)
     return jsonify(new_cfg)
 
 
