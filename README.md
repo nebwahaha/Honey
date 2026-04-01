@@ -7,6 +7,8 @@ A honeypot monitoring system that deploys a Cowrie SSH/Telnet honeypot, logs att
 ![Platform](https://img.shields.io/badge/Platform-Ubuntu%2020.04%2B-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
+![HoneyBlock Dashboard](honeyblock/assets/dashboard/HoneyBlock-Preview.png)
+
 ## Features
 
 - **Real-time Monitoring Dashboard** — Live feed of raw Cowrie logs, top attacker bar chart, and world map showing attack origins
