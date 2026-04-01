@@ -14,12 +14,19 @@ CHECK="${GREEN}✓${NC}"
 CROSS="${RED}✗${NC}"
 ARROW="${CYAN}→${NC}"
 
-# ── Single persistent progress bar ────────────────────────────────────────
+# ── Compact progress display (single bar + single status line) ────────────
 TOTAL_STEPS=12
 CURRENT_STEP=0
-OUTPUT_LINES=0  # lines printed below the bar
+BAR_ACTIVE=0
 
-draw_progress() {
+init_bar() {
+  local width=50 bar=""
+  for ((i=0; i<width; i++)); do bar+="░"; done
+  printf "  ${DIM}[${NC}${GREEN}%s${NC}${DIM}]${NC} ${BOLD}  0%%${NC}\n" "$bar"
+  BAR_ACTIVE=1
+}
+
+draw_bar() {
   local width=50
   local filled=$(( CURRENT_STEP * width / TOTAL_STEPS ))
   local empty=$(( width - filled ))
@@ -29,35 +36,30 @@ draw_progress() {
   for ((i=0; i<filled; i++)); do bar+="█"; done
   for ((i=0; i<empty; i++)); do bar+="░"; done
 
-  if [[ $OUTPUT_LINES -gt 0 ]]; then
-    # Move up past all output lines to reach the bar
-    printf '\033[%dA' "$OUTPUT_LINES"
-  fi
-  # Clear the bar line, redraw, move back down
-  printf '\r\033[2K'
+  # Move up to bar line, redraw, move back to status line
+  printf '\033[A\r\033[2K'
   printf "  ${DIM}[${NC}${GREEN}%s${NC}${DIM}]${NC} ${BOLD}%3d%%${NC}" "$bar" "$pct"
-  if [[ $OUTPUT_LINES -gt 0 ]]; then
-    printf '\033[%dB' "$OUTPUT_LINES"
-  fi
-  printf '\r'
-}
-
-# Wrappers that track how many lines appear below the bar
-out() {
-  echo -e "$1"
-  OUTPUT_LINES=$((OUTPUT_LINES + 1))
+  printf '\n\r'
 }
 
 step() {
   CURRENT_STEP=$((CURRENT_STEP + 1))
-  draw_progress
-  out "  ${ARROW} ${BOLD}$1${NC}"
+  draw_bar
+  printf '\r\033[2K'
+  echo -ne "  ${ARROW} ${BOLD}$1${NC}"
 }
 
-info()    { out "    ${CHECK} $1"; }
-warn()    { out "    ${YELLOW}!${NC} $1"; }
-fail()    { echo -e "    ${CROSS} $1"; exit 1; }
-detail()  { out "    ${DIM}$1${NC}"; }
+info()    { printf '\r\033[2K'; echo -ne "    ${CHECK} $1"; }
+warn()    { printf '\r\033[2K'; echo -ne "    ${YELLOW}!${NC} $1"; }
+detail()  { printf '\r\033[2K'; echo -ne "    ${DIM}$1${NC}"; }
+fail() {
+  if [[ $BAR_ACTIVE -eq 1 ]]; then
+    printf '\r\033[2K'
+    printf '\033[A\r\033[2K'
+  fi
+  echo -e "  ${CROSS} $1"
+  exit 1
+}
 
 # ── Banner ──────────────────────────────────────────────────────────────────
 clear 2>/dev/null || true
@@ -75,9 +77,8 @@ if [[ $EUID -ne 0 ]]; then
   fail "This installer must be run as root. Use: ${YELLOW}sudo bash install.sh${NC}"
 fi
 
-# ── Print the initial bar (0%) — this line stays fixed ────────────────────
-draw_progress
-echo ""
+# ── Print the initial bar (0%) and blank status line ─────────────────────
+init_bar
 
 # ── Step 1: OS check ───────────────────────────────────────────────────────
 step "Checking system requirements"
@@ -353,14 +354,14 @@ systemctl start honeyblock-watcher.service
 
 info "All services running"
 
-# ── Final bar at 100% ────────────────────────────────────────────────────
-draw_progress
+# ── Clear progress display ───────────────────────────────────────────────
+printf '\r\033[2K'          # clear status line
+printf '\033[A\r\033[2K'   # clear bar line
 
 # ── Success banner ──────────────────────────────────────────────────────────
 echo ""
-echo ""
 echo -e "  ${GREEN}${BOLD}┌──────────────────────────────────────────────────┐${NC}"
-echo -e "  ${GREEN}${BOLD}│  ✓  H O N E Y B L O C K   I N S T A L L E D     │${NC}"
+echo -e "  ${GREEN}${BOLD}│     H O N E Y B L O C K    I N S T A L L E D     │${NC}"
 echo -e "  ${GREEN}${BOLD}└──────────────────────────────────────────────────┘${NC}"
 echo ""
 
