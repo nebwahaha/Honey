@@ -1,0 +1,39 @@
+# Documentation (internal/personal)
+honeyblock/SiteColorGuide.md
+honeyblock/TUTORIAL.md
+honeyblock/simplifiedtutorial.md
+honeyblock/portforward_guide.md
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+
+# Build artifacts
+honeyblock/honeyblock-installer.run
+dist/
+build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment & secrets
+.env
+.env.*
+
+# Logs & databases
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/

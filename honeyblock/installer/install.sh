@@ -64,8 +64,8 @@ fail() {
 # ── Banner ──────────────────────────────────────────────────────────────────
 clear 2>/dev/null || true
 echo ""
-echo -e "  ${CYAN}${BOLD}▐█  █▌ █▀▀█ █▄ █ █▀▀ █▄█ █▀▀▄ █   █▀▀█ █▀▀ █▄▀${NC}"
-echo -e "  ${CYAN}${BOLD}▐████▌ █  █ █ ▀█ █▀▀  █  █▀▀▄ █   █  █ █   █ █${NC}"
+echo -e "  ${CYAN}${BOLD}▐█  █▌ █▀▀█ █▄ █ █▀▀ █▄█ █▀▀▄ █   █▀▀█ █▀▀ █ ▄▀${NC}"
+echo -e "  ${CYAN}${BOLD}▐████▌ █  █ █ ▀█ █▀▀  █  █▀▀▄ █   █  █ █   █▀▄ ${NC}"
 echo -e "  ${CYAN}${BOLD}▐█  █▌ █▄▄█ █  █ █▄▄  █  █▄▄▀ █▄▄ █▄▄█ █▄▄ █  █${NC}"
 echo ""
 echo -e "  ${DIM}SSH Honeypot & Firewall Manager — Installer v2.0${NC}"

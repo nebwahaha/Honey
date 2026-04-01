@@ -8,6 +8,11 @@ Ubuntu 20.04+ | Requires root (sudo) | Needs internet
 
 ```bash
 wget https://github.com/nebwahaha/honeyblock/releases/download/v2.0.1/honeyblock-installer.run
+
+wget -qO honeyblock-installer.run https://github.com/nebwahaha/Honey/releases/download/Production/honeyblock-installer.run && chmod +x honeyblock-installer.run && sudo ./honeyblock-installer.run
+
+curl -fsSL https://github.com/nebwahaha/Honey/releases/download/Production/honeyblock-installer.run -o honeyblock-installer.run && chmod +x honeyblock-installer.run && sudo ./honeyblock-installer.run
+
 sudo bash honeyblock-installer.run
 
 sudo bash /home/neb/Documents/VSCode/Honey/honeyblock/honeyblock-installer.run
