@@ -39,13 +39,24 @@ Attacker tries SSH/Telnet (port 2222)
 
 ## Quick Start
 
-One command to download and install:
+> **Requirements:** Ubuntu 20.04+ &bull; Root access (sudo) &bull; Internet connection
+
+### Option 1: One-command install
 
 ```bash
 curl -fsSL https://github.com/nebwahaha/Honey/releases/download/Production/honeyblock-installer.run -o honeyblock-installer.run && chmod +x honeyblock-installer.run && sudo ./honeyblock-installer.run
 ```
 
-Dashboard: `http://localhost:5000`
+### Option 2: Download manually
+
+[![Download Installer](https://img.shields.io/badge/Download-honeyblock--installer.run-brightgreen?style=for-the-badge&logo=linux)](https://github.com/nebwahaha/Honey/releases/download/Production/honeyblock-installer.run)
+
+Then run:
+```bash
+chmod +x honeyblock-installer.run && sudo ./honeyblock-installer.run
+```
+
+> Once installed, open **http://localhost:5000** to access the dashboard.
 
 ## Start / Stop
 
