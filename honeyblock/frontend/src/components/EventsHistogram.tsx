@@ -10,7 +10,7 @@ function EventsHistogram({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 40 }}>
+      <div style={{ color: theme.textSecondary, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         No event data yet.
       </div>
     )
@@ -27,7 +27,7 @@ function EventsHistogram({ data }: Props) {
   }))
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height="100%">
       <LineChart data={formatted} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" stroke={theme.cardBorder} />
         <XAxis

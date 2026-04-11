@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Stats, Attacker } from '../types'
 import { useTheme } from '../theme'
 import StatCard from '../components/StatCard'
@@ -17,6 +17,38 @@ function Dashboard() {
   const [activeSessions, setActiveSessions] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string>('')
+  const [liveFeedOpen, setLiveFeedOpen] = useState(false)
+  const [showProtocol, setShowProtocol] = useState(false)
+  const [showHistogram, setShowHistogram] = useState(false)
+  const [logCount, setLogCount] = useState(0)
+  const [seenLogCount, setSeenLogCount] = useState(0)
+  const drawerRef = useRef<HTMLDivElement>(null)
+
+  const hasNewLogs = logCount > 0 && logCount > seenLogCount
+
+  const handleLogsToggle = () => {
+    if (!liveFeedOpen) {
+      setSeenLogCount(logCount)
+    }
+    setLiveFeedOpen(!liveFeedOpen)
+  }
+
+  // Poll log count for badge
+  useEffect(() => {
+    const checkLogs = async () => {
+      try {
+        const res = await fetch('/api/logs?limit=1')
+        if (res.ok) {
+          const data = await res.json()
+          const total = data.total ?? (data.data ?? []).length
+          setLogCount(total)
+        }
+      } catch { /* ignore */ }
+    }
+    checkLogs()
+    const interval = setInterval(checkLogs, 10_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchData = async () => {
     try {
@@ -57,25 +89,25 @@ function Dashboard() {
     background: theme.cardBg,
     border: `2px solid ${theme.cardBorder}`,
     borderRadius: 10,
-    padding: 20,
+    padding: 10,
   }
 
   const h3Style: React.CSSProperties = {
     color: theme.heading,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 700,
-    marginBottom: 16,
+    marginBottom: 8,
   }
 
   const thStyle: React.CSSProperties = {
-    padding: '8px 12px',
+    padding: '4px 12px',
     color: theme.textTertiary,
     fontSize: 13,
     fontWeight: 600,
   }
 
   const tdStyle: React.CSSProperties = {
-    padding: '8px 12px',
+    padding: '4px 12px',
     color: theme.textPrimary,
     fontSize: 13,
   }
@@ -89,11 +121,11 @@ function Dashboard() {
   }
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', maxHeight: 1200 }}>
       {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ color: theme.textSecondary, fontSize: 13 }}>Last updated: {lastUpdated}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: theme.textSecondary, fontSize: 13 }}>Last updated: {lastUpdated}</span>
           <button
             onClick={fetchData}
             style={{
@@ -114,12 +146,49 @@ function Dashboard() {
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
           </button>
+          {/* Live logs button */}
+          <button
+            onClick={handleLogsToggle}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: theme.btnBg,
+              border: `2px solid ${theme.btnBorder}`,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: theme.btnText,
+              position: 'relative',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="18" rx="2" />
+              <line x1="6" y1="8" x2="18" y2="8" />
+              <line x1="6" y1="12" x2="18" y2="12" />
+              <line x1="6" y1="16" x2="12" y2="16" />
+            </svg>
+            {hasNewLogs && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  width: 9,
+                  height: 9,
+                  borderRadius: '50%',
+                  background: '#e74c3c',
+                }}
+              />
+            )}
+          </button>
           <NotificationBell />
         </div>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 12 }}>
         <StatCard
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
@@ -185,22 +254,70 @@ function Dashboard() {
         />
       </div>
 
-      {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Top 5 Attacker IPs</h3>
-          <TopAttackersChart data={stats?.top_ips?.slice(0, 5) ?? []} />
+      {/* Charts row — toggleable */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 12, flex: 1, minHeight: 0 }}>
+        <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ ...h3Style, marginBottom: 0 }}>
+              {showProtocol ? 'Attack Protocols' : 'Top 5 Attacker IPs'}
+            </h3>
+            <button
+              onClick={() => setShowProtocol(!showProtocol)}
+              style={{
+                background: theme.btnBg,
+                border: `1px solid ${theme.btnBorder}`,
+                borderRadius: 6,
+                padding: '4px 10px',
+                color: theme.btnText,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {showProtocol ? 'Top 5 IPs' : 'Protocols'}
+            </button>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            {showProtocol
+              ? <ProtocolChart data={stats?.protocol_counts ?? []} />
+              : <TopAttackersChart data={stats?.top_ips?.slice(0, 5) ?? []} />
+            }
+          </div>
         </div>
 
-        <div style={{ ...cardStyle, gridColumn: 'span 2' }}>
-          <h3 style={h3Style}>General Location of Attacks</h3>
-          <AttackMap attackers={attackers} />
+        <div style={{ ...cardStyle, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ ...h3Style, marginBottom: 0 }}>
+              {showHistogram ? 'Honeypot Events Histogram' : 'General Location of Attacks'}
+            </h3>
+            <button
+              onClick={() => setShowHistogram(!showHistogram)}
+              style={{
+                background: theme.btnBg,
+                border: `1px solid ${theme.btnBorder}`,
+                borderRadius: 6,
+                padding: '4px 10px',
+                color: theme.btnText,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {showHistogram ? 'Map' : 'Histogram'}
+            </button>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            {showHistogram
+              ? <EventsHistogram data={stats?.hourly_histogram ?? []} />
+              : <AttackMap attackers={attackers} />
+            }
+          </div>
         </div>
       </div>
 
       {/* Top usernames, passwords & country pie chart */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={cardStyle}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, flex: 1, minHeight: 0 }}>
+        <div style={{ ...cardStyle, overflow: 'auto' }}>
           <h3 style={h3Style}>Cowrie Top 10 Usernames</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -223,7 +340,7 @@ function Dashboard() {
           </table>
         </div>
 
-        <div style={cardStyle}>
+        <div style={{ ...cardStyle, overflow: 'auto' }}>
           <h3 style={h3Style}>Cowrie Top 10 Passwords</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -246,29 +363,36 @@ function Dashboard() {
           </table>
         </div>
 
-        <div style={cardStyle}>
+        <div style={{ ...cardStyle, overflow: 'auto' }}>
           <h3 style={h3Style}>Countries</h3>
           <CountryPieChart attackers={attackers} />
         </div>
       </div>
 
-      {/* Protocol breakdown & events histogram */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Attack Protocols</h3>
-          <ProtocolChart data={stats?.protocol_counts ?? []} />
+      {/* Sliding live feed drawer */}
+      <div
+        ref={drawerRef}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          transform: liveFeedOpen ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.3s ease',
+          maxHeight: '50vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: theme.cardBg,
+          borderTop: `1px solid ${theme.cardBorder}`,
+        }}
+      >
+        <div style={{ padding: '12px 20px 0 20px' }}>
+          <h3 style={{ ...h3Style, marginBottom: 12 }}>Live Feed for Logs</h3>
         </div>
-
-        <div style={{ ...cardStyle, gridColumn: 'span 2' }}>
-          <h3 style={h3Style}>Honeypot Events Histogram</h3>
-          <EventsHistogram data={stats?.hourly_histogram ?? []} />
+        <div style={{ flex: 1, overflow: 'auto', padding: '0 20px 12px 20px' }}>
+          <LiveFeed />
         </div>
-      </div>
-
-      {/* Live feed - raw Cowrie logs */}
-      <div style={cardStyle}>
-        <h3 style={h3Style}>Live Feed for Logs</h3>
-        <LiveFeed />
       </div>
     </div>
   )

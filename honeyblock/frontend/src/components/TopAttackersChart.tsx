@@ -10,14 +10,14 @@ function TopAttackersChart({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 40 }}>
+      <div style={{ color: theme.textSecondary, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         No attacker data yet.
       </div>
     )
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 10, right: 16, left: -4, bottom: 8 }} barCategoryGap="3%">
         <CartesianGrid vertical={false} strokeDasharray="3 3" stroke={theme.cardBorder} />
         <XAxis

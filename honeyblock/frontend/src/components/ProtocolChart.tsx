@@ -16,7 +16,7 @@ function ProtocolChart({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <div style={{ color: theme.textSecondary, textAlign: 'center', padding: 40 }}>
+      <div style={{ color: theme.textSecondary, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         No protocol data yet.
       </div>
     )
@@ -28,7 +28,7 @@ function ProtocolChart({ data }: Props) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
       {/* Half-pie: arc on left, opening to the right */}
-      <PieChart width={140} height={260}>
+      <PieChart width={140} height={300}>
         <Pie
           data={chartData}
           dataKey="value"

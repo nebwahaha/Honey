@@ -19,16 +19,16 @@ function Sidebar() {
   return (
     <aside
       style={{
-        width: 220,
+        width: 200,
         height: '100vh',
         position: 'sticky',
         top: 0,
+        flexShrink: 0,
         background: theme.sidebarBg,
         borderRight: `1px solid ${theme.sidebarBorder}`,
         display: 'flex',
         flexDirection: 'column',
         padding: '24px 12px',
-        flexShrink: 0,
       }}
     >
       {/* Logo */}

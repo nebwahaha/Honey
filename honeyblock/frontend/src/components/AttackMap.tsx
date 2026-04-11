@@ -155,7 +155,7 @@ function AttackMap({ attackers }: Props) {
     }, [])
 
   return (
-    <div ref={mapRef} style={{ height: 400, position: 'relative', overflow: 'hidden' }}>
+    <div ref={mapRef} style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{ scale: 120, center: [0, 0] }}
