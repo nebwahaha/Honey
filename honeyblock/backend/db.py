@@ -95,35 +95,66 @@ def get_sessions(limit: int = 50, offset: int = 0) -> list[dict]:
         return [dict(row) for row in rows]
 
 
-def get_stats() -> dict:
+def _range_cutoff(time_range: str | None) -> str | None:
+    """Return an ISO timestamp cutoff for the given range, or None for 'all'."""
+    if not time_range or time_range == "all":
+        return None
+    now = datetime.now(timezone.utc)
+    if time_range == "today":
+        cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif time_range == "week":
+        cutoff = now - timedelta(days=7)
+    elif time_range == "month":
+        cutoff = now - timedelta(days=30)
+    elif time_range == "year":
+        cutoff = now - timedelta(days=365)
+    else:
+        return None
+    return cutoff.isoformat()
+
+
+def get_stats(time_range: str | None = None) -> dict:
+    cutoff = _range_cutoff(time_range)
+    time_filter = "AND timestamp >= ?" if cutoff else ""
+    time_params: tuple = (cutoff,) if cutoff else ()
+
     with get_connection() as conn:
-        total = conn.execute("SELECT COUNT(*) FROM attacker_session").fetchone()[0]
-        unique_ips = conn.execute("SELECT COUNT(DISTINCT ip) FROM attacker_session").fetchone()[0]
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM attacker_session WHERE 1=1 {time_filter}", time_params
+        ).fetchone()[0]
+        unique_ips = conn.execute(
+            f"SELECT COUNT(DISTINCT ip) FROM attacker_session WHERE 1=1 {time_filter}", time_params
+        ).fetchone()[0]
         blocked = conn.execute("SELECT COUNT(*) FROM attacker WHERE is_blocked = 'Blocked'").fetchone()[0]
 
         top_ips = conn.execute(
-            "SELECT ip, COUNT(*) as count FROM attacker_session GROUP BY ip ORDER BY count DESC LIMIT 10"
+            f"SELECT ip, COUNT(*) as count FROM attacker_session WHERE 1=1 {time_filter} GROUP BY ip ORDER BY count DESC LIMIT 10",
+            time_params,
         ).fetchall()
 
         top_usernames = conn.execute(
-            "SELECT username_attempt, COUNT(*) as count FROM attacker_session WHERE username_attempt IS NOT NULL "
-            "GROUP BY username_attempt ORDER BY count DESC LIMIT 10"
+            f"SELECT username_attempt, COUNT(*) as count FROM attacker_session WHERE username_attempt IS NOT NULL {time_filter} "
+            "GROUP BY username_attempt ORDER BY count DESC LIMIT 10",
+            time_params,
         ).fetchall()
 
         top_passwords = conn.execute(
-            "SELECT password_attempt, COUNT(*) as count FROM attacker_session WHERE password_attempt IS NOT NULL "
-            "GROUP BY password_attempt ORDER BY count DESC LIMIT 10"
+            f"SELECT password_attempt, COUNT(*) as count FROM attacker_session WHERE password_attempt IS NOT NULL {time_filter} "
+            "GROUP BY password_attempt ORDER BY count DESC LIMIT 10",
+            time_params,
         ).fetchall()
 
         protocol_counts = conn.execute(
-            "SELECT protocol, COUNT(*) as count FROM attacker_session WHERE protocol IS NOT NULL "
-            "GROUP BY protocol ORDER BY count DESC"
+            f"SELECT protocol, COUNT(*) as count FROM attacker_session WHERE protocol IS NOT NULL {time_filter} "
+            "GROUP BY protocol ORDER BY count DESC",
+            time_params,
         ).fetchall()
 
         # Histogram: hourly if <= 48 buckets, daily otherwise
         hour_count = conn.execute(
-            "SELECT COUNT(DISTINCT strftime('%Y-%m-%dT%H', timestamp)) "
-            "FROM attacker_session WHERE timestamp IS NOT NULL"
+            f"SELECT COUNT(DISTINCT strftime('%Y-%m-%dT%H', timestamp)) "
+            f"FROM attacker_session WHERE timestamp IS NOT NULL {time_filter}",
+            time_params,
         ).fetchone()[0]
 
         if hour_count <= 48:
@@ -133,9 +164,10 @@ def get_stats() -> dict:
 
         hourly_rows = conn.execute(
             f"SELECT strftime('{bucket_fmt}', timestamp) as hour, "
-            "COUNT(*) as events, COUNT(DISTINCT ip) as unique_ips "
-            "FROM attacker_session WHERE timestamp IS NOT NULL "
-            "GROUP BY hour ORDER BY hour"
+            f"COUNT(*) as events, COUNT(DISTINCT ip) as unique_ips "
+            f"FROM attacker_session WHERE timestamp IS NOT NULL {time_filter} "
+            "GROUP BY hour ORDER BY hour",
+            time_params,
         ).fetchall()
 
         return {
@@ -169,11 +201,22 @@ def upsert_attacker(ip: str, country: str = None):
             )
 
 
-def get_attackers() -> list[dict]:
+def get_attackers(time_range: str | None = None) -> list[dict]:
+    cutoff = _range_cutoff(time_range)
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT * FROM attacker ORDER BY last_detected DESC"
-        ).fetchall()
+        if cutoff:
+            # Only return attackers that have sessions within the time range
+            rows = conn.execute(
+                "SELECT DISTINCT a.* FROM attacker a "
+                "INNER JOIN attacker_session s ON a.ip = s.ip "
+                "WHERE s.timestamp >= ? "
+                "ORDER BY a.last_detected DESC",
+                (cutoff,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM attacker ORDER BY last_detected DESC"
+            ).fetchall()
         return [dict(row) for row in rows]
 
 
@@ -334,13 +377,18 @@ def get_chances_left(ip: str) -> int:
     return max(0, cfg["threshold"] - since)
 
 
-def get_unique_ips_paginated(limit: int = 50, offset: int = 0) -> dict:
+def get_unique_ips_paginated(limit: int = 50, offset: int = 0, time_range: str | None = None) -> dict:
+    cutoff = _range_cutoff(time_range)
+    time_filter = "WHERE timestamp >= ?" if cutoff else ""
+    time_params: tuple = (cutoff,) if cutoff else ()
     with get_connection() as conn:
-        total = conn.execute("SELECT COUNT(DISTINCT ip) FROM attacker_session").fetchone()[0]
+        total = conn.execute(
+            f"SELECT COUNT(DISTINCT ip) FROM attacker_session {time_filter}", time_params
+        ).fetchone()[0]
         rows = conn.execute(
-            "SELECT ip, COUNT(*) as attack_count, MAX(timestamp) as last_seen "
-            "FROM attacker_session GROUP BY ip ORDER BY attack_count DESC LIMIT ? OFFSET ?",
-            (limit, offset),
+            f"SELECT ip, COUNT(*) as attack_count, MAX(timestamp) as last_seen "
+            f"FROM attacker_session {time_filter} GROUP BY ip ORDER BY attack_count DESC LIMIT ? OFFSET ?",
+            (*time_params, limit, offset),
         ).fetchall()
         return {"total": total, "data": [dict(r) for r in rows]}
 

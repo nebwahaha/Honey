@@ -22,7 +22,12 @@ function Dashboard() {
   const [showHistogram, setShowHistogram] = useState(false)
   const [logCount, setLogCount] = useState(0)
   const [seenLogCount, setSeenLogCount] = useState(0)
+  const [timeRange, setTimeRange] = useState<string>('all')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
   const drawerRef = useRef<HTMLDivElement>(null)
+  const [drawerHeight, setDrawerHeight] = useState(50) // percentage of vh
+  const isDragging = useRef(false)
 
   const hasNewLogs = logCount > 0 && logCount > seenLogCount
 
@@ -31,6 +36,29 @@ function Dashboard() {
       setSeenLogCount(logCount)
     }
     setLiveFeedOpen(!liveFeedOpen)
+  }
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    isDragging.current = true
+    const startY = e.clientY
+    const startHeight = drawerHeight
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return
+      const delta = startY - ev.clientY
+      const newHeight = Math.min(90, Math.max(15, startHeight + (delta / window.innerHeight) * 100))
+      setDrawerHeight(newHeight)
+    }
+
+    const onMouseUp = () => {
+      isDragging.current = false
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
   }
 
   // Poll log count for badge
@@ -50,11 +78,23 @@ function Dashboard() {
     return () => clearInterval(interval)
   }, [])
 
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   const fetchData = async () => {
+    const rangeParam = timeRange !== 'all' ? `?range=${timeRange}` : ''
     try {
       const [statsRes, attackersRes, activeRes] = await Promise.all([
-        fetch('/api/stats'),
-        fetch('/api/attackers'),
+        fetch(`/api/stats${rangeParam}`),
+        fetch(`/api/attackers${rangeParam}`),
         fetch('/api/active-sessions'),
       ])
 
@@ -83,7 +123,7 @@ function Dashboard() {
     fetchData()
     const interval = setInterval(fetchData, 15_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [timeRange])
 
   const cardStyle: React.CSSProperties = {
     background: theme.cardBg,
@@ -126,6 +166,73 @@ function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ color: theme.textSecondary, fontSize: 13 }}>Last updated: {lastUpdated}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Time range filter */}
+          <div ref={filterRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              style={{
+                height: 40,
+                borderRadius: 8,
+                background: theme.btnBg,
+                border: `2px solid ${theme.btnBorder}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0 12px',
+                color: theme.btnText,
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              {{ all: 'All Time', today: 'Today', week: 'Week', month: 'Month', year: 'Year' }[timeRange]}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {filterOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  background: theme.cardBg,
+                  border: `2px solid ${theme.cardBorder}`,
+                  borderRadius: 10,
+                  padding: 4,
+                  zIndex: 999,
+                  minWidth: 140,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                }}
+              >
+                {(['all', 'today', 'week', 'month', 'year'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => { setTimeRange(opt); setFilterOpen(false) }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      border: 'none',
+                      borderRadius: 6,
+                      background: timeRange === opt ? theme.navActiveBg : 'transparent',
+                      color: timeRange === opt ? theme.navActiveText : theme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: timeRange === opt ? 700 : 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {{ all: 'All Time', today: 'Today', week: 'This Week', month: 'This Month', year: 'This Year' }[opt]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={fetchData}
             style={{
@@ -203,7 +310,8 @@ function Dashboard() {
           label="Unique IPs"
           value={stats?.unique_ips ?? 0}
           fetchRows={async (page) => {
-            const res = await fetch(`/api/unique-ips?page=${page}&limit=50`)
+            const rangeQ = timeRange !== 'all' ? `&range=${timeRange}` : ''
+            const res = await fetch(`/api/unique-ips?page=${page}&limit=50${rangeQ}`)
             const json = await res.json()
             return {
               rows: json.data.map((d: { ip: string; attack_count: number }) => ({
@@ -375,20 +483,37 @@ function Dashboard() {
         style={{
           position: 'fixed',
           bottom: 0,
-          left: 0,
+          left: 200,
           right: 0,
           zIndex: 1000,
           transform: liveFeedOpen ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.3s ease',
-          maxHeight: '50vh',
+          transition: isDragging.current ? 'none' : 'transform 0.3s ease',
+          height: `${drawerHeight}vh`,
           display: 'flex',
           flexDirection: 'column',
           background: theme.cardBg,
-          borderTop: `1px solid ${theme.cardBorder}`,
+          borderTop: `3px solid ${theme.cardBorder}`,
+          borderLeft: `3px solid ${theme.cardBorder}`,
+          borderTopLeftRadius: 14,
+          borderTopRightRadius: 14,
         }}
       >
-        <div style={{ padding: '12px 20px 0 20px' }}>
-          <h3 style={{ ...h3Style, marginBottom: 12 }}>Live Feed for Logs</h3>
+        {/* Drag handle */}
+        <div
+          onMouseDown={handleDragStart}
+          style={{
+            cursor: 'ns-resize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '6px 0',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: theme.textTertiary, opacity: 0.5 }} />
+        </div>
+        <div style={{ padding: '0 20px 0 20px' }}>
+          <h3 style={{ ...h3Style, marginBottom: 8 }}>Live Feed for Logs</h3>
         </div>
         <div style={{ flex: 1, overflow: 'auto', padding: '0 20px 12px 20px' }}>
           <LiveFeed />

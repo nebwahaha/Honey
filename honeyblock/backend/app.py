@@ -61,7 +61,8 @@ def attempts():
 # ---------------------------------------------------------------------------
 @app.route("/api/stats")
 def stats():
-    info = db.get_stats()
+    time_range = request.args.get("range", None)
+    info = db.get_stats(time_range=time_range)
 
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     with db.get_connection() as conn:
@@ -78,7 +79,8 @@ def stats():
 # ---------------------------------------------------------------------------
 @app.route("/api/attackers")
 def attackers():
-    rows = db.get_attackers()
+    time_range = request.args.get("range", None)
+    rows = db.get_attackers(time_range=time_range)
     cfg = db.get_autoblock_config()
     for row in rows:
         if cfg["enabled"]:
@@ -233,9 +235,10 @@ def _cowrie_is_active() -> bool:
 def unique_ips():
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 50, type=int)
+    time_range = request.args.get("range", None)
     limit = max(1, min(limit, 200))
     offset = (max(1, page) - 1) * limit
-    return jsonify(db.get_unique_ips_paginated(limit=limit, offset=offset))
+    return jsonify(db.get_unique_ips_paginated(limit=limit, offset=offset, time_range=time_range))
 
 
 @app.route("/api/active-sessions")
