@@ -141,7 +141,7 @@ function LiveFeed() {
         background: theme.feedBg,
         border: `2px solid ${theme.cardBorder}`,
         borderRadius: 6,
-        maxHeight: 400,
+        height: '100%',
         overflowY: 'auto',
         fontFamily: "'JetBrains Mono', 'Consolas', monospace",
         fontSize: 13,
