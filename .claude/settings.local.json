@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install recharts react-simple-maps react-router-dom)",
+      "Bash(npm install -D @types/react-simple-maps)",
+      "Bash(npx vite build)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(git -C /home/neb/Documents/VSCode/Honey log --all --pretty=format: --name-only)"
+    ]
+  }
+}
